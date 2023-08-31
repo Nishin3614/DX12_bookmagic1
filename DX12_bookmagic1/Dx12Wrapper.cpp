@@ -8,6 +8,37 @@
 #include <d3dcompiler.h>
 #pragma comment(lib,"d3dcompiler.lib")
 
+namespace//列挙型用
+{
+	//	オリジン用レンダーターゲットビュー種類
+	enum class E_ORIGIN_RTV : int
+	{
+		COL,	//	通常カラー
+		NORMAL,	//	法線
+		MAX_NORMALDROW,
+
+		PROCE = MAX_NORMALDROW,	//	加工用
+		MAX
+	};
+
+	//	オリジン用SRV,CBV種類
+	enum class E_ORIGIN_SRV : int
+	{
+		//	SRV
+		COL,	//	通常カラー
+		NORMAL,	//	法線
+		MAX_NORMALDROW,
+
+		PROCE = MAX_NORMALDROW,	//	加工用
+
+		//	CBV
+		BOKE,
+
+		MAX
+	};
+
+}
+
 //	名前空間
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -473,21 +504,33 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		Helper::DebugOutputFormatString("マルチパスレンダリング：RVT用ディスクリプタヒープ作成失敗");
 		return;
 	}
+
 	//	オリジン用のレンダーターゲットビュー作成
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-	auto handle = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();
+
+	auto baseH = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();						//	RTVのスタートポイント
+	int offset = 0;																	//	ビューのオフセット位置
+	auto incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);	//	レンダーターゲットビューのインクリメントサイズ
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(baseH);											//	ハンドル
+
+	//	通常描画のレンダーターゲットビュー作成
+	offset = incSize * static_cast<int>(E_ORIGIN_RTV::COL);
 	for (auto& res : _origin1Resource)
 	{
+		handle.InitOffsetted(baseH, offset);
 		_dev->CreateRenderTargetView(
 			res.Get(),
 			&rtvDesc,
 			handle
 		);
-		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+		offset += incSize;
 	}
+
 	//	加工用のレンダーターゲットビュー作成
+	offset = incSize * static_cast<int>(E_ORIGIN_RTV::PROCE);
+	handle.InitOffsetted(baseH, offset);
 	_dev->CreateRenderTargetView(
 		_proceResource.Get(),
 		&rtvDesc,
@@ -495,7 +538,7 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 	);
 
 	//	SRV用ヒープを作る
-	heapDesc.NumDescriptors = 4;
+	heapDesc.NumDescriptors = static_cast<int>(E_ORIGIN_SRV::MAX);
 	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	result = _dev->CreateDescriptorHeap(
@@ -508,25 +551,32 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		return;
 	}
 
-	handle = _originSRVHeap->GetCPUDescriptorHandleForHeapStart();
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Format = rtvDesc.Format;
 	srvDesc.Texture2D.MipLevels = 1;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
 	//	オリジンのシェーダーリソースビュー作成
+	baseH = _originSRVHeap->GetCPUDescriptorHandleForHeapStart();						//	SRVのスタートポイント
+	offset = 0;																	//	ビューのオフセット位置
+	incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);	//	レンダーターゲットビューのインクリメントサイズ
+
+	offset = incSize * static_cast<int>(E_ORIGIN_SRV::COL);
 	for (auto& res : _origin1Resource)
 	{
+		handle.InitOffsetted(baseH, offset);
 		_dev->CreateShaderResourceView(
 			res.Get(),
 			&srvDesc,
 			handle
 		);
-		handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-			D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+		offset += incSize;
 	}
 
 	//	加工用のシェーダーリソースビュー作成
+	offset = incSize * static_cast<int>(E_ORIGIN_SRV::PROCE);
+	handle.InitOffsetted(baseH, offset);
 	_dev->CreateShaderResourceView(
 		_proceResource.Get(),
 		&srvDesc,
@@ -536,10 +586,11 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 	//	ぼけ定数バッファ作成
 	CreateBokeConstantBuff();
 	//	ぼけ定数バッファビュー作成
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = _bokehParamBuffer->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = _bokehParamBuffer->GetDesc().Width;
+	offset = incSize * static_cast<int>(E_ORIGIN_SRV::BOKE);
+	handle.InitOffsetted(baseH, offset);
 	_dev->CreateConstantBufferView(&cbvDesc, handle);
 
 }
@@ -649,54 +700,68 @@ void Dx12Wrapper::CreateBokeConstantBuff(void)
 void Dx12Wrapper::CreatePeraRootSignature(void)
 {
 	//	レンジの設定
-	D3D12_DESCRIPTOR_RANGE range[5] = {};
+	D3D12_DESCRIPTOR_RANGE ranges[5] = {};
 	//	通常カラー、法線セット
-	range[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[0].BaseShaderRegister = 0;
-	range[0].NumDescriptors = 2;	//	t0,t1
+	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[0].NumDescriptors = 2;	//	t0,t1
 	//	ぼけ定数バッファセット
-	range[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
-	range[1].BaseShaderRegister = 0;
-	range[1].NumDescriptors = 1;
+	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	ranges[1].NumDescriptors = 1;	//	b0
 	//	ポストエフェクト用のバッファセット
-	range[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[2].BaseShaderRegister = 2;
-	range[2].NumDescriptors = 1;	//	t2
+	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[2].NumDescriptors = 1;	//	t2
 	//	深度値テクスチャ用
-	range[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[3].BaseShaderRegister = 3;
-	range[3].NumDescriptors = 1;	//	t3
+	ranges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[3].NumDescriptors = 1;	//	t3
 	//	ライトデプステクスチャ用
-	range[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	range[4].BaseShaderRegister = 4;
-	range[4].NumDescriptors = 1;	//	t4
+	ranges[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[4].NumDescriptors = 1;	//	t4
+
+	//	レギスター設定
+	UINT nSRVRegister = 0;
+	UINT nCBVRegister = 0;
+	for (auto& range : ranges)
+	{
+		//	SRV
+		if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+		{
+			range.BaseShaderRegister = nSRVRegister;
+			nSRVRegister += range.NumDescriptors;
+		}
+		else if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+		{
+			range.BaseShaderRegister = nCBVRegister;
+			nCBVRegister += range.NumDescriptors;
+		}
+		else {}
+	}
 
 	//	ルートパラメータの設定
 	D3D12_ROOT_PARAMETER rp[5] = {};
 	//	テクスチャーバッファセット
 	rp[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	rp[0].DescriptorTable.pDescriptorRanges = &range[0];
+	rp[0].DescriptorTable.pDescriptorRanges = &ranges[0];
 	rp[0].DescriptorTable.NumDescriptorRanges = 1;
 	//	ぼけ定数バッファセット
 	rp[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	rp[1].DescriptorTable.pDescriptorRanges = &range[1];
+	rp[1].DescriptorTable.pDescriptorRanges = &ranges[1];
 	rp[1].DescriptorTable.NumDescriptorRanges = 1;
 	//	ポストエフェクト用バッファセット
 	rp[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
-	rp[2].DescriptorTable.pDescriptorRanges = &range[2];
+	rp[2].DescriptorTable.pDescriptorRanges = &ranges[2];
 	rp[2].DescriptorTable.NumDescriptorRanges = 1;
 	//	深度値テクスチャー用
 	rp[3].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[3].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rp[3].DescriptorTable.pDescriptorRanges = &range[3];
+	rp[3].DescriptorTable.pDescriptorRanges = &ranges[3];
 	rp[3].DescriptorTable.NumDescriptorRanges = 1;
 	//	ライトデプステクスチャ用
 	rp[4].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-	rp[4].DescriptorTable.pDescriptorRanges = &range[4];
+	rp[4].DescriptorTable.pDescriptorRanges = &ranges[4];
 	rp[4].DescriptorTable.NumDescriptorRanges = 1;
 
 
@@ -1099,22 +1164,27 @@ void Dx12Wrapper::PreOriginDraw(void)
 		_cmdList->ResourceBarrier(1,
 			&resBarri);
 	}
-	//	オリジン用ディスクリプタヒープハンドル取得
-	auto rtvhandle = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvhandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[2] =
+
+	//	RTVハンドルのセット
+	auto baseH = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();						//	RTVのスタートポイント
+	uint32_t offset = 0;																	//	ビューのオフセット位置
+	auto incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);	//	レンダーターゲットビューのインクリメントサイズ
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handles[static_cast<int>(E_ORIGIN_RTV::MAX_NORMALDROW)];											//	ハンドル
+	for (auto& handle : handles)
 	{
-		_originRTVHeap->GetCPUDescriptorHandleForHeapStart(),
-		rtvhandle
-	};
+		handle.InitOffsetted(baseH, offset);
+		offset += incSize;
+	}
+
 	//	深度バッファ用ディスクリプタヒープハンドル取得
 	auto dsvHeapPointer = _dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	//	レンダーターゲットセット
-	_cmdList->OMSetRenderTargets(2, rtvs, false, &dsvHeapPointer);
+	_cmdList->OMSetRenderTargets(
+		static_cast<UINT>(E_ORIGIN_RTV::MAX_NORMALDROW), handles, false, &dsvHeapPointer);
 	//クリアカラー		 R   G   B   A
 	float clsClr[4] = { 0.5,0.5,0.5,1.0 };
 	//	オリジン用のレンダーターゲットビューをクリア
-	for (auto& rt : rtvs)
+	for (auto& rt : handles)
 	{
 		_cmdList->ClearRenderTargetView(rt, clsClr, 0, nullptr);
 	}
@@ -1150,13 +1220,11 @@ void Dx12Wrapper::ProceDraw(void)
 		&resBarri);
 
 	//	加工用RTVをセット
-	auto rtvHeapPointer =
-		_originRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvHeapPointer.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	rtvHeapPointer.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer;
+	rtvHeapPointer.InitOffsetted(
+		_originRTVHeap->GetCPUDescriptorHandleForHeapStart(),
+		_dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * static_cast<int>(E_ORIGIN_RTV::PROCE)
+	);
 	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
 
 	//	クリアカラー	
@@ -1177,16 +1245,14 @@ void Dx12Wrapper::ProceDraw(void)
 	_cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);						//	ペラポリゴン用の頂点バッファビューセット
 	//	オリジン用のSRVヒープをセット
 	_cmdList->SetDescriptorHeaps(1, _originSRVHeap.GetAddressOf());
-	auto handle = _originSRVHeap->GetGPUDescriptorHandleForHeapStart();
+	CD3DX12_GPU_DESCRIPTOR_HANDLE handle;
+	auto baseH = _originSRVHeap->GetGPUDescriptorHandleForHeapStart();
+	int incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	//	パラメーター0番（テクスチャーリソース）とヒープを関連付ける
+	handle.InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_SRV::COL));
 	_cmdList->SetGraphicsRootDescriptorTable(0, handle);
 	//	パラメーター0番（定数バッファリソース）とヒープを関連付ける
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	handle.InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_SRV::BOKE));
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
 	//	深度値検証用	//	
@@ -1257,16 +1323,14 @@ void Dx12Wrapper::Draw(void)
 
 	//	オリジン用のSRVヒープをセット
 	_cmdList->SetDescriptorHeaps(1, _originSRVHeap.GetAddressOf());
-	auto handle = _originSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	//	加工用のテクスチャとヒープを関連付ける
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE handle;
+	auto baseH = _originSRVHeap->GetGPUDescriptorHandleForHeapStart();
+	int incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	handle.InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_SRV::PROCE));
 	_cmdList->SetGraphicsRootDescriptorTable(0, handle);
 	//	パラメーター0番（定数バッファリソース）とヒープを関連付ける
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	handle.InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_SRV::BOKE));
 	_cmdList->SetGraphicsRootDescriptorTable(1, handle);
 
 	//	ポストエフェクト用のSRVヒープをセット
