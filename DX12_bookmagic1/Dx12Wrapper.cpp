@@ -17,7 +17,11 @@ namespace//列挙型用
 		NORMAL,	//	法線
 		MAX_NORMALDROW,
 
-		PROCE = MAX_NORMALDROW,	//	加工用
+		BLOOM = MAX_NORMALDROW,
+		//BLOOM2,
+		MAX_BLOOM,
+
+		PROCE = MAX_BLOOM,	//	加工用
 		MAX
 	};
 
@@ -29,7 +33,10 @@ namespace//列挙型用
 		NORMAL,	//	法線
 		MAX_NORMALDROW,
 
-		PROCE = MAX_NORMALDROW,	//	加工用
+		BLOOM = MAX_NORMALDROW,
+		BLOOM2,
+
+		PROCE,	//	加工用
 
 		//	CBV
 		BOKE,
@@ -487,6 +494,26 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		}
 	}
 
+	//	ブルームバッファの作成
+	for (auto& res : _bloomBuffer)
+	{
+		auto result = _dev->CreateCommittedResource(
+			&heapProp,
+			D3D12_HEAP_FLAG_NONE,
+			&resDesc,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			&clearValue,
+			IID_PPV_ARGS(res.ReleaseAndGetAddressOf()));
+		//	サイズを半分にする
+		resDesc.Width >>= 1;
+		resDesc.Height >>= 1;
+		if (FAILED(result))
+		{
+			Helper::DebugOutputFormatString("ブルームのレンダーターゲットバッファ作成失敗");
+			return;
+		}
+	}
+
 	//	加工用のレンダーターゲット作成
 	CreateProcessRenderTarget();
 
@@ -494,7 +521,7 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 	//	作成済みのヒープ情報を使ってもう1毎作る
 	auto heapDesc = rtvHeaps->GetDesc();
 	//	RTV用ヒープを作る
-	heapDesc.NumDescriptors = 3;
+	heapDesc.NumDescriptors = static_cast<int>(E_ORIGIN_RTV::MAX);
 	auto result = _dev->CreateDescriptorHeap(
 		&heapDesc,
 		IID_PPV_ARGS(_originRTVHeap.ReleaseAndGetAddressOf())
@@ -527,6 +554,29 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		);
 		offset += incSize;
 	}
+
+	//	ブルーム用のレンダーターゲットビュー作成
+	offset = incSize * static_cast<int>(E_ORIGIN_RTV::BLOOM);
+	handle.InitOffsetted(baseH, offset);
+	_dev->CreateRenderTargetView(
+		_bloomBuffer[0].Get(),
+		&rtvDesc,
+		handle
+	);
+
+	/*
+	offset = incSize * static_cast<int>(E_ORIGIN_RTV::BLOOM);
+	for (auto& res : _bloomBuffer)
+	{
+		handle.InitOffsetted(baseH, offset);
+		_dev->CreateRenderTargetView(
+			res.Get(),
+			&rtvDesc,
+			handle
+		);
+		offset += incSize;
+	}
+	*/
 
 	//	加工用のレンダーターゲットビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_RTV::PROCE);
@@ -573,6 +623,29 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		);
 		offset += incSize;
 	}
+
+	//	ブルームのシェーダーリソースビュー作成
+	offset = incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM);
+	handle.InitOffsetted(baseH, offset);
+	_dev->CreateShaderResourceView(
+		_bloomBuffer[0].Get(),
+		&srvDesc,
+		handle
+	);
+
+	/*
+	offset = incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM);
+	for (auto& res : _bloomBuffer)
+	{
+		handle.InitOffsetted(baseH, offset);
+		_dev->CreateShaderResourceView(
+			res.Get(),
+			&srvDesc,
+			handle
+		);
+		offset += incSize;
+	}
+	*/
 
 	//	加工用のシェーダーリソースビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_SRV::PROCE);
@@ -701,21 +774,21 @@ void Dx12Wrapper::CreatePeraRootSignature(void)
 {
 	//	レンジの設定
 	D3D12_DESCRIPTOR_RANGE ranges[5] = {};
-	//	通常カラー、法線セット
+	//	通常カラー、法線セット、高輝度
 	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[0].NumDescriptors = 2;	//	t0,t1
+	ranges[0].NumDescriptors = 3;	//	t0,t1,t2
 	//	ぼけ定数バッファセット
 	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	ranges[1].NumDescriptors = 1;	//	b0
 	//	ポストエフェクト用のバッファセット
 	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[2].NumDescriptors = 1;	//	t2
+	ranges[2].NumDescriptors = 1;	//	t3
 	//	深度値テクスチャ用
 	ranges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[3].NumDescriptors = 1;	//	t3
+	ranges[3].NumDescriptors = 1;	//	t4
 	//	ライトデプステクスチャ用
 	ranges[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[4].NumDescriptors = 1;	//	t4
+	ranges[4].NumDescriptors = 1;	//	t5
 
 	//	レギスター設定
 	UINT nSRVRegister = 0;
@@ -1164,12 +1237,20 @@ void Dx12Wrapper::PreOriginDraw(void)
 		_cmdList->ResourceBarrier(1,
 			&resBarri);
 	}
+	//	ブルーム描画前にバリア設定
+	D3D12_RESOURCE_BARRIER resBarri =
+		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[0].Get(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+	_cmdList->ResourceBarrier(1,
+		&resBarri);
+
 
 	//	RTVハンドルのセット
 	auto baseH = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();						//	RTVのスタートポイント
 	uint32_t offset = 0;																	//	ビューのオフセット位置
 	auto incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);	//	レンダーターゲットビューのインクリメントサイズ
-	CD3DX12_CPU_DESCRIPTOR_HANDLE handles[static_cast<int>(E_ORIGIN_RTV::MAX_NORMALDROW)];											//	ハンドル
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handles[static_cast<int>(E_ORIGIN_RTV::MAX_BLOOM)];											//	ハンドル
 	for (auto& handle : handles)
 	{
 		handle.InitOffsetted(baseH, offset);
@@ -1180,13 +1261,18 @@ void Dx12Wrapper::PreOriginDraw(void)
 	auto dsvHeapPointer = _dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	//	レンダーターゲットセット
 	_cmdList->OMSetRenderTargets(
-		static_cast<UINT>(E_ORIGIN_RTV::MAX_NORMALDROW), handles, false, &dsvHeapPointer);
+		static_cast<UINT>(E_ORIGIN_RTV::MAX_BLOOM), handles, false, &dsvHeapPointer);
 	//クリアカラー		 R   G   B   A
 	float clsClr[4] = { 0.5,0.5,0.5,1.0 };
 	//	オリジン用のレンダーターゲットビューをクリア
-	for (auto& rt : handles)
+	for (int i = 0;i<_countof(handles);i++)
 	{
-		_cmdList->ClearRenderTargetView(rt, clsClr, 0, nullptr);
+		//	ブルームのクリアカラーを黒にする
+		if (i == 2)
+		{
+			clsClr[0] = clsClr[1] = clsClr[2] = 0.0f; clsClr[3] = 1.0f;
+		}
+		_cmdList->ClearRenderTargetView(handles[i], clsClr, 0, nullptr);
 	}
 	//	深度バッファビューをクリア
 	_cmdList->ClearDepthStencilView(dsvHeapPointer,
@@ -1206,6 +1292,13 @@ void Dx12Wrapper::EndOriginDraw(void)
 		_cmdList->ResourceBarrier(1,
 			&resBarri);
 	}
+	D3D12_RESOURCE_BARRIER resBarri =
+		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[0].Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//	ブルーム描画後バリア指定
+	_cmdList->ResourceBarrier(1,
+		&resBarri);
 }
 
 //	加工用のレンダーターゲットの描画

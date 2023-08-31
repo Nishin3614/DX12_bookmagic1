@@ -125,7 +125,7 @@ void PMDActor::Draw(void)
 		_pDxWrap->GetCmdList()->DrawIndexedInstanced(
 			m.indicesNum,	//	インデックス数			
 			//2,				//	インスタンス数（ポリゴン数）1:通常のモデル描画、2:地面影
-			2,
+			1,
 			idxOffset,		//	インデックスのオフセット
 			0,				//	頂点データのオフセット
 			0				//	インスタンスのオフセット

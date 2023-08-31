@@ -73,9 +73,15 @@ PixelOutput BasicPS(Output input)
 	)
 		;
 
+	//	通常レンダリング結果（カラー）
 	output.col = float4(col.rgb * shadowWeight, col.a);
+	//	法線結果
 	output.normal.rgb = float3((input.normal.xyz + 1.0f) / 2.0f);
 	output.normal.a = 1;
+	//	高輝度結果
+	float y = dot(float3(0.299f, 0.587f, 0.114f), output.col);
+	output.highLum = y > 0.99f ? output.col : 0.0f;
+	output.highLum.a = 1;
 	return output;
 	/*
 	return// max(

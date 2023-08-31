@@ -299,11 +299,23 @@ void PMDRenderer::CreateGraphicPipeline(void)
 	gpipeline.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;	//	三角形で構成
 
 	//	レンダーターゲットの設定
-	gpipeline.NumRenderTargets = 2;							//	レンダーターゲット数
-	gpipeline.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;	//	0～1に正規化したsRGBA
-	gpipeline.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;	//	0～1に正規化したsRGBA
+	{
+		//	ターゲットの種類
+		enum E_TARGET
+		{
+			COL,
+			NORMAL,
+			BLOOM,
+			MAX
+		};
+		gpipeline.NumRenderTargets = MAX;							//	レンダーターゲット数
+		for (int nTarget = 0; nTarget < MAX; nTarget++)
+		{
+			gpipeline.RTVFormats[nTarget] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;	//	0～1に正規化したsRGBA
+		}
+	}
 
-																//	アンチエイリアシングのためのサンプル数設定
+	//	アンチエイリアシングのためのサンプル数設定
 	gpipeline.SampleDesc.Count = 1;		//	サンプリングは1ピクセルにつき1
 	gpipeline.SampleDesc.Quality = 0;	//	クオリティーは最低（0）
 
@@ -336,10 +348,13 @@ void PMDRenderer::CreateGraphicPipeline(void)
 	gpipeline.VS.pShaderBytecode = vsBlob->GetBufferPointer();	//	頂点シェーダーポインター
 	gpipeline.VS.BytecodeLength = vsBlob->GetBufferSize();		//	頂点シェーダーのバッファサイズ
 	gpipeline.PS.pShaderBytecode = nullptr;						//	ピクセルシェーダーなし
-	gpipeline.PS.BytecodeLength = 0;							
+	gpipeline.PS.BytecodeLength = 0;
+	//	ターゲットフォーマットの初期化
+	for (int nTarget = 0; nTarget < gpipeline.NumRenderTargets; nTarget++)
+	{
+		gpipeline.RTVFormats[nTarget] = DXGI_FORMAT_UNKNOWN;
+	}
 	gpipeline.NumRenderTargets = 0;								//	レンダーターゲットなし
-	gpipeline.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;				
-	gpipeline.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
 
 	result = _pDxWap->GetDevice()->CreateGraphicsPipelineState(
 		&gpipeline,

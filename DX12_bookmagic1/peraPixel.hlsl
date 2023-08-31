@@ -164,58 +164,45 @@ float4 OutLine(Output input)
 }
 
 //	細かいぼかし処理
-float4 DetailBlur(Output input)
+float4 DetailBlur(Texture2D<float4> destTex, SamplerState destSmp,float2 uv,float dx,float dy)
 {
-	float4 col = tex.Sample(smp, input.uv);
-	//	テクスチャのサイズ情報取得
-	float w, h, level;
-	tex.GetDimensions(
-		0,			//	ミップレベル
-		w,			//	幅
-		h, 			//	高さ
-		level		//	ミップマップのレベル数
-	);
-
-	//	画素間
-	float dx = 1.0f / w;
-	float dy = 1.0f / h;
 	//	近傍テーブルの合計値
 	float4 ret = float4(0, 0, 0, 0);
 
 	//	最上段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 1 / 256;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 2 * dy)) * 4 / 256;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, 2 * dy)) * 6 / 256;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, 2 * dy)) * 4 / 256;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * 1 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-2 * dx, 2 * dy)) * 1 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-1 * dx, 2 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(0 * dx, 2 * dy)) * 6 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(1 * dx, 2 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(2 * dx, 2 * dy)) * 1 / 256;
 
 	//	1つ上段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 1 * dy)) * 4 / 256;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 1 * dy)) * 16 / 256;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, 1 * dy)) * 24 / 256;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, 1 * dy)) * 16 / 256;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 1 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-2 * dx, 1 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-1 * dx, 1 * dy)) * 16 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(0 * dx, 1 * dy)) * 24 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(1 * dx, 1 * dy)) * 16 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(2 * dx, 1 * dy)) * 4 / 256;
 
 	//	中段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0 * dy)) * 6 / 256;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, 0 * dy)) * 24 / 256;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, 0 * dy)) * 36 / 256;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, 0 * dy)) * 24 / 256;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0 * dy)) * 6 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-2 * dx, 0 * dy)) * 6 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-1 * dx, 0 * dy)) * 24 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(0 * dx, 0 * dy)) * 36 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(1 * dx, 0 * dy)) * 24 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(2 * dx, 0 * dy)) * 6 / 256;
 
 	//	1つ下段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -1 * dy)) * 4 / 256;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, -1 * dy)) * 16 / 256;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, -1 * dy)) * 24 / 256;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, -1 * dy)) * 16 / 256;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -1 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-2 * dx, -1 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-1 * dx, -1 * dy)) * 16 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(0 * dx, -1 * dy)) * 24 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(1 * dx, -1 * dy)) * 16 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(2 * dx, -1 * dy)) * 4 / 256;
 
 	//	最下段
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 1 / 256;
-	ret += tex.Sample(smp, input.uv + float2(-1 * dx, -2 * dy)) * 4 / 256;
-	ret += tex.Sample(smp, input.uv + float2(0 * dx, -2 * dy)) * 6 / 256;
-	ret += tex.Sample(smp, input.uv + float2(1 * dx, -2 * dy)) * 4 / 256;
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 1 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-2 * dx, -2 * dy)) * 1 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(-1 * dx, -2 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(0 * dx, -2 * dy)) * 6 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(1 * dx, -2 * dy)) * 4 / 256;
+	ret += destTex.Sample(destSmp, uv + float2(2 * dx, -2 * dy)) * 1 / 256;
 
 
 	//	画素の平均値を返す
@@ -276,9 +263,28 @@ float4 ps(Output input) : SV_Target
 	{
 		return texNormal.Sample(smp,(input.uv - float2(0,0.4f)) * 5);
 	}
+	//	高輝度出力
+	else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
+	{
+		return highLumTex.Sample(smp, (input.uv - float2(0, 0.6f)) * 5);
+	}
+
+	//	テクスチャのサイズ情報取得
+	float w, h, level;
+	tex.GetDimensions(
+		0,			//	ミップレベル
+		w,			//	幅
+		h, 			//	高さ
+		level		//	ミップマップのレベル数
+	);
+	//	画素間
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
 
 	//	通常描画
-	return tex.Sample(smp, input.uv);
+	return tex.Sample(smp, input.uv) 
+		+ DetailBlur(highLumTex,smp,input.uv,dx,dy)//	ぼかし処理
+		;	
 	//	モノクロ化
 	return GaussianBlur(input);
 
@@ -292,47 +298,55 @@ float4 VerticalBokehPS(Output input) : SV_Target
 	//	通常描画
 	return tex.Sample(smp, input.uv);
 
-/*
-float2 normalTex = effectTex.Sample(smp,input.uv).xy;
-//	RGB→法線ベクトルの変換
-normalTex = normalTex * 2.0f - 1.0f;
-//	normalTexの範囲は-1~1だが、幅1がテクスチャ1枚の大きさであり、
-//	歪みすぎるため0.1を乗算する
-return tex.Sample(smp, input.uv + normalTex * 0.1f);
-*/
+	/*
+	float2 normalTex = effectTex.Sample(smp,input.uv).xy;
+	//	RGB→法線ベクトルの変換
+	normalTex = normalTex * 2.0f - 1.0f;
+	//	normalTexの範囲は-1~1だが、幅1がテクスチャ1枚の大きさであり、
+	//	歪みすぎるため0.1を乗算する
+	return tex.Sample(smp, input.uv + normalTex * 0.1f);
+	*/
 
-//return tex.Sample(smp, input.uv);
-float4 col = tex.Sample(smp, input.uv);
-//	テクスチャのサイズ情報取得
-float w, h, level;
-tex.GetDimensions(
-	0,			//	ミップレベル
-	w,			//	幅
-	h, 			//	高さ
-	level		//	ミップマップのレベル数
-);
+	//return tex.Sample(smp, input.uv);
+	float4 col = tex.Sample(smp, input.uv);
+	//	テクスチャのサイズ情報取得
+	float w, h, level;
+	tex.GetDimensions(
+		0,			//	ミップレベル
+		w,			//	幅
+		h, 			//	高さ
+		level		//	ミップマップのレベル数
+	);
 
-//	画素間
-float dy = 1.0f / h;
-//	近傍テーブルの合計値
-float4 ret = float4(0, 0, 0, 0);
+	//	画素間
+	float dy = 1.0f / h;
+	//	近傍テーブルの合計値
+	float4 ret = float4(0, 0, 0, 0);
 
-//	x方向の合成？
-//	※なぜbkweights[0]（0~3)までをcolでかけているのか？
-//ret += bkweights[0] * col;
-//ret += bkweights[1] * col;
+	//	x方向の合成？
+	//	※なぜbkweights[0]（0~3)までをcolでかけているのか？
+	//ret += bkweights[0] * col;
+	//ret += bkweights[1] * col;
 
-//	0~7の合計値
-for (int i = 0; i < 8; ++i)
-{
-	ret += bkweights[i >> 2][i % 4]
-		* tex.Sample(smp, input.uv + float2(0, dy * i));
-	ret += bkweights[i >> 2][i % 4]
-		* tex.Sample(smp, input.uv + float2(0, -dy * i));
+	//	0~7の合計値
+	for (int i = 0; i < 8; ++i)
+	{
+		ret += bkweights[i >> 2][i % 4]
+			* tex.Sample(smp, input.uv + float2(0, dy * i));
+		ret += bkweights[i >> 2][i % 4]
+			* tex.Sample(smp, input.uv + float2(0, -dy * i));
+	}
+
+	//	y値だけのガウシアンぼかし時の値を返す
+	return float4(ret.rgb,col.a);
 }
 
-//	y値だけのガウシアンぼかし時の値を返す
-return float4(ret.rgb,col.a);
+//	メインテクスチャを詳細ぼかしピクセルシェーダー
+float4 BluePS(Output input) : SV_Target
+{
+	float w,h,miplevels;
+	tex.GetDimensions(0, w, h, miplevels);
+	return DetailBlur(tex, smp, input.uv, 1.0f / w, 1.0f / h);
 }
 
 //	ポストエフェクトPS

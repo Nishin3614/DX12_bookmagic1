@@ -168,4 +168,7 @@ private:
 	ComPtr<ID3D12Resource> _lightDepthBuffer;
 	ComPtr<ID3D12DescriptorHeap> _depthSRVHeap = nullptr;		//	深度値テクスチャー用ヒープ
 
+	//	ブルーム用バッファ
+	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffer;	//	ブルーム用バッファ
+
 };
