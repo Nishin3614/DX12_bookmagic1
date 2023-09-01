@@ -67,6 +67,8 @@ public:
 	void ShadowDraw(void);
 	//	シーンビューのセット命令
 	void CommandSet_SceneView(void);
+	//	縮小バッファぼかし描画処理
+	void DrawShrinkTextureForBlur(void);
 
 	/*	情報取得関連の処理*/
 	//	スワップチェインの取得
@@ -170,5 +172,5 @@ private:
 
 	//	ブルーム用バッファ
 	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffer;	//	ブルーム用バッファ
-
+	ComPtr<ID3D12PipelineState> _blurPipeline;			//	画面全体ぼかし用パイプライン
 };

@@ -1,11 +1,12 @@
 Texture2D<float4> tex : register(t0);	//	通常カラーテクスチャ
 Texture2D<float4> texNormal : register(t1);	//	法線
 Texture2D<float4> highLumTex : register(t2);	//	高輝度
-Texture2D<float4> effectTex : register(t3);	//	ポストエフェクトテクスチャー
+Texture2D<float4> ShrinkHightLumTex : register(t3);	//	高輝度縮小バッファ
+Texture2D<float4> effectTex : register(t4);	//	ポストエフェクトテクスチャー
 
 //	深度値検証用
-Texture2D<float4> depthTex : register(t4);	//	深度値テクスチャー
-Texture2D<float4> lightDepthTex : register(t5);	//	ライドデプステクスチャー
+Texture2D<float4> depthTex : register(t5);	//	深度値テクスチャー
+Texture2D<float4> lightDepthTex : register(t6);	//	ライドデプステクスチャー
 
 SamplerState smp : register(s0);			//	サンプラー
 

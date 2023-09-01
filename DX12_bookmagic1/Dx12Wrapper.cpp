@@ -18,7 +18,7 @@ namespace//列挙型用
 		MAX_NORMALDROW,
 
 		BLOOM = MAX_NORMALDROW,
-		//BLOOM2,
+		SHRINKBLOOM,
 		MAX_BLOOM,
 
 		PROCE = MAX_BLOOM,	//	加工用
@@ -34,7 +34,7 @@ namespace//列挙型用
 		MAX_NORMALDROW,
 
 		BLOOM = MAX_NORMALDROW,
-		BLOOM2,
+		SHRINKBLOOM,
 
 		PROCE,	//	加工用
 
@@ -472,6 +472,7 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 	//	使っているバックバッファの情報を利用する
 	auto& bbuff = _backBuffers[0];
 	auto resDesc = bbuff->GetDesc();
+	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
@@ -494,9 +495,13 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		}
 	}
 
+	//	レンダリング時のクリア値と同じ値
+	clsClr[0] = clsClr[1] = clsClr[2] = 0.0f;
+	clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
 	//	ブルームバッファの作成
 	for (auto& res : _bloomBuffer)
 	{
+		
 		auto result = _dev->CreateCommittedResource(
 			&heapProp,
 			D3D12_HEAP_FLAG_NONE,
@@ -506,7 +511,6 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 			IID_PPV_ARGS(res.ReleaseAndGetAddressOf()));
 		//	サイズを半分にする
 		resDesc.Width >>= 1;
-		resDesc.Height >>= 1;
 		if (FAILED(result))
 		{
 			Helper::DebugOutputFormatString("ブルームのレンダーターゲットバッファ作成失敗");
@@ -557,15 +561,6 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 
 	//	ブルーム用のレンダーターゲットビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_RTV::BLOOM);
-	handle.InitOffsetted(baseH, offset);
-	_dev->CreateRenderTargetView(
-		_bloomBuffer[0].Get(),
-		&rtvDesc,
-		handle
-	);
-
-	/*
-	offset = incSize * static_cast<int>(E_ORIGIN_RTV::BLOOM);
 	for (auto& res : _bloomBuffer)
 	{
 		handle.InitOffsetted(baseH, offset);
@@ -576,7 +571,6 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		);
 		offset += incSize;
 	}
-	*/
 
 	//	加工用のレンダーターゲットビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_RTV::PROCE);
@@ -626,15 +620,6 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 
 	//	ブルームのシェーダーリソースビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM);
-	handle.InitOffsetted(baseH, offset);
-	_dev->CreateShaderResourceView(
-		_bloomBuffer[0].Get(),
-		&srvDesc,
-		handle
-	);
-
-	/*
-	offset = incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM);
 	for (auto& res : _bloomBuffer)
 	{
 		handle.InitOffsetted(baseH, offset);
@@ -645,7 +630,6 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		);
 		offset += incSize;
 	}
-	*/
 
 	//	加工用のシェーダーリソースビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_SRV::PROCE);
@@ -776,19 +760,19 @@ void Dx12Wrapper::CreatePeraRootSignature(void)
 	D3D12_DESCRIPTOR_RANGE ranges[5] = {};
 	//	通常カラー、法線セット、高輝度
 	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[0].NumDescriptors = 3;	//	t0,t1,t2
+	ranges[0].NumDescriptors = 4;	//	t0,t1,t2,t3
 	//	ぼけ定数バッファセット
 	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	ranges[1].NumDescriptors = 1;	//	b0
 	//	ポストエフェクト用のバッファセット
 	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[2].NumDescriptors = 1;	//	t3
+	ranges[2].NumDescriptors = 1;	//	t4
 	//	深度値テクスチャ用
 	ranges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[3].NumDescriptors = 1;	//	t4
+	ranges[3].NumDescriptors = 1;	//	t5
 	//	ライトデプステクスチャ用
 	ranges[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[4].NumDescriptors = 1;	//	t5
+	ranges[4].NumDescriptors = 1;	//	t6
 
 	//	レギスター設定
 	UINT nSRVRegister = 0;
@@ -971,13 +955,18 @@ void Dx12Wrapper::CreatePeraGraphicPipeLine(void)
 		ps.ReleaseAndGetAddressOf(),
 		errBlob.ReleaseAndGetAddressOf()
 	);
+	Helper::DebugShaderError(result, errBlob.Get());
 	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
 	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
 	result = _dev->CreateGraphicsPipelineState(
 		&gpsDesc,
 		IID_PPV_ARGS(_procePipeline.ReleaseAndGetAddressOf())
 	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("加工用グラフィックパイプライン作成失敗\n");
+		return;
+	}
 
 	//	ポストエフェクトのパイプライン作成
 	result = D3DCompileFromFile(
@@ -989,13 +978,40 @@ void Dx12Wrapper::CreatePeraGraphicPipeLine(void)
 		ps.ReleaseAndGetAddressOf(),
 		errBlob.ReleaseAndGetAddressOf()
 	);
+	Helper::DebugShaderError(result, errBlob.Get());
 	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
-	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-
 	result = _dev->CreateGraphicsPipelineState(
 		&gpsDesc,
 		IID_PPV_ARGS(_effectPipeline.ReleaseAndGetAddressOf())
 	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("ポストエフェクト用グラフィックパイプライン作成失敗\n");
+		return;
+	}
+
+	//	ぼかしパイプライン作成
+	result = D3DCompileFromFile(
+		L"peraPixel.hlsl", nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"BlurPS", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0,
+		ps.ReleaseAndGetAddressOf(),
+		errBlob.ReleaseAndGetAddressOf()
+	);
+	Helper::DebugShaderError(result, errBlob.Get());
+	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	result = _dev->CreateGraphicsPipelineState(
+		&gpsDesc,
+		IID_PPV_ARGS(_blurPipeline.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("ぼかし用グラフィックパイプライン作成失敗\n");
+		return;
+	}
 
 }
 
@@ -1250,7 +1266,7 @@ void Dx12Wrapper::PreOriginDraw(void)
 	auto baseH = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();						//	RTVのスタートポイント
 	uint32_t offset = 0;																	//	ビューのオフセット位置
 	auto incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);	//	レンダーターゲットビューのインクリメントサイズ
-	CD3DX12_CPU_DESCRIPTOR_HANDLE handles[static_cast<int>(E_ORIGIN_RTV::MAX_BLOOM)];											//	ハンドル
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handles[static_cast<int>(E_ORIGIN_RTV::BLOOM) + 1];											//	ハンドル
 	for (auto& handle : handles)
 	{
 		handle.InitOffsetted(baseH, offset);
@@ -1261,14 +1277,14 @@ void Dx12Wrapper::PreOriginDraw(void)
 	auto dsvHeapPointer = _dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	//	レンダーターゲットセット
 	_cmdList->OMSetRenderTargets(
-		static_cast<UINT>(E_ORIGIN_RTV::MAX_BLOOM), handles, false, &dsvHeapPointer);
+		(static_cast<int>(E_ORIGIN_RTV::BLOOM) + 1), handles, false, &dsvHeapPointer);
 	//クリアカラー		 R   G   B   A
 	float clsClr[4] = { 0.5,0.5,0.5,1.0 };
 	//	オリジン用のレンダーターゲットビューをクリア
 	for (int i = 0;i<_countof(handles);i++)
 	{
 		//	ブルームのクリアカラーを黒にする
-		if (i == 2)
+		if (i == static_cast<int>(E_ORIGIN_RTV::BLOOM))
 		{
 			clsClr[0] = clsClr[1] = clsClr[2] = 0.0f; clsClr[3] = 1.0f;
 		}
@@ -1516,6 +1532,92 @@ void Dx12Wrapper::CommandSet_SceneView(void)
 
 	CD3DX12_RECT rc(0, 0, _windowSize.cx, _windowSize.cy);
 	_cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
+}
+
+#define SHRINKCOUNT 8	//	縮小回数
+//	縮小バッファぼかし描画処理
+void Dx12Wrapper::DrawShrinkTextureForBlur(void)
+{
+	_cmdList->SetPipelineState(_blurPipeline.Get());
+	_cmdList->SetGraphicsRootSignature(_prPoriRS.Get());
+
+	//	頂点バッファセット
+	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	_cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);
+
+	//	縮小バッファはレンダーターゲットに
+	D3D12_RESOURCE_BARRIER resBarri =
+		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[1].Get(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+	_cmdList->ResourceBarrier(1,
+		&resBarri);
+
+	//	レンダーターゲットセット
+	auto rtvHandle = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	rtvHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * static_cast<int>(E_ORIGIN_RTV::SHRINKBLOOM);
+	_cmdList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	float clsClr[4] = { 0.0f,0.0f,0.0f,1.0f };
+	_cmdList->ClearRenderTargetView(rtvHandle, clsClr, 0, nullptr);
+
+	//	シェーダーリソースセット
+	_cmdList->SetDescriptorHeaps(1, _originSRVHeap.GetAddressOf());
+	//	高輝度テクスチャーセット
+	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle;
+	srvHandle.InitOffsetted(
+		_originSRVHeap->GetGPUDescriptorHandleForHeapStart(),
+		_dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * static_cast<int>(E_ORIGIN_SRV::BLOOM));
+	_cmdList->SetGraphicsRootDescriptorTable(0, srvHandle);
+
+	//	縮小バッファの初期サイズ設定
+	//		原寸サイズの半分のサイズに初期化している
+	auto desc = _bloomBuffer[0]->GetDesc();
+	D3D12_VIEWPORT vp = {};
+	D3D12_RECT sr = {};
+	
+	vp.MaxDepth = 1.0f;
+	vp.MinDepth = 0.0f;
+	vp.Height = desc.Height / 2;
+	vp.Width = desc.Width / 2;
+	sr.top = 0;
+	sr.left = 0;
+	sr.right = vp.Width;
+	sr.bottom = vp.Height;
+
+	for (int i = 0; i < SHRINKCOUNT; i++)
+	{
+		//Helper::DebugOutputFormatString("[-----%d-----]", i);
+		//Helper::DebugOutputFormatString(" vp\n");
+		//Helper::DebugOutputFormatString("TopLeftX = %f,TopLeftY = %f,Width = %f,Height = %f\n", vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height);
+		//Helper::DebugOutputFormatString(" sr\n");
+		//Helper::DebugOutputFormatString("left = %ld,top = %ld,right = %ld,bottom = %ld\n", sr.left, sr.top, sr.right, sr.bottom);
+
+		//	描画範囲セット
+		_cmdList->RSSetViewports(1, &vp);
+		_cmdList->RSSetScissorRects(1, &sr);
+		//	描画
+		_cmdList->DrawInstanced(4, 1, 0, 0);
+
+		//	下にずらす
+		sr.top += vp.Height;
+		vp.TopLeftX = 0;
+		vp.TopLeftY = sr.top;
+
+		//	幅も高さも半分
+		//	※sr.rightも変更するのか？
+		vp.Width /= 2;
+		vp.Height /= 2;
+		sr.bottom = sr.top + vp.Height;
+		sr.right = vp.Width;
+	}
+
+	//	縮小バッファをシェーダーリソースに
+	resBarri =
+		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[1].Get(),
+			D3D12_RESOURCE_STATE_RENDER_TARGET,
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	_cmdList->ResourceBarrier(1,
+		&resBarri);
 }
 
 //	テクスチャの読み込み処理

@@ -65,8 +65,10 @@ void DXApplication::OnRender(void)
 	//	オリジンレンダーターゲットの描画終了
 	_pDxWrap->EndOriginDraw();
 
+	_pDxWrap->DrawShrinkTextureForBlur();
 	//	加工用のレンダーターゲットの描画
 	_pDxWrap->ProceDraw();
+
 
 	//	バックバッファをレンダーターゲットのセット及び、のクリア
 	_pDxWrap->Clear();
