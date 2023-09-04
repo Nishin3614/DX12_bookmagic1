@@ -55,14 +55,8 @@ private:
 		void* operator new(size_t size);
 		DirectX::XMMATRIX world;	//	ワールド行列
 	};
-	//	PMDヘッダー構造体
-	struct PMDHeader
-	{
-		float version;			//	バージョン
-		char model_name[20];	//	モデル名
-		char comment[256];		//	コメント
-	};
 	//	PMD頂点構造体
+	/*
 	struct PMDVertex
 	{
 		DirectX::XMFLOAT3 pos;	//	頂点座標：12バイト
@@ -72,6 +66,7 @@ private:
 		unsigned char boneWeight;	//	ボーン影響力：1バイト
 		unsigned char edgeflg;		//	輪郭線フラグ：1バイト
 	};	//	×38バイト、〇40バイト（パディングが入るため）
+	*/
 #pragma pack(1)	//	ここから1バイトパッキングとなり、アライメントは発生しない
 	//	PMDマテリアル構造体
 	struct PMDMaterial
@@ -248,8 +243,6 @@ private:
 	DWORD _duration;									//	アニメーションの最終フレーム
 
 	//	PMDのデータ
-	PMDHeader _pmdheader;								//	PMDヘッダー
-	PMDVertex _pmdvertex;								//	PMD頂点情報
 	unsigned int _vertNum;								//	頂点数
 	std::vector<unsigned char> _vertices;				//	頂点情報データの塊
 	unsigned int _indicesNum;							//	インデックス数

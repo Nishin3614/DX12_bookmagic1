@@ -39,6 +39,11 @@ private:
 	//	コピーテクスチャレギオンでのテクスチャー貼り付け←公式から推奨される処理
 	//void ByCopyTextureRegion(void);
 
+	//	シャドウマップ描画
+	void ShadowMapDraw(void);
+	//	モデル描画
+	void ModelDraw(void);
+
 	//	変数	//
 	Dx12Wrapper* _pDxWrap;									//	DirectX周りのクラス
 	PMDActor* _pPmdAct;										//	PMDアクタークラス

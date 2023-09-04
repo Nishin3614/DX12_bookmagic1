@@ -20,8 +20,6 @@ PMDRenderer::PMDRenderer(Dx12Wrapper* pDxWap) :
 //	初期化処理
 void PMDRenderer::Init(void)
 {
-	//	シェーダーの読み込み
-	LoodShader();
 	//	ルートパラメータ、ルートシグネイチャの作成
 	CreateRootParameterOrRootSignature();
 	//	グラフィックパイプラインの作成
@@ -57,11 +55,6 @@ void PMDRenderer::Release(void)
 void PMDRenderer::Update(void)
 {
 
-}
-
-//	シェーダーの読み込み
-void PMDRenderer::LoodShader(void)
-{
 }
 
 //	ルートパラメータとルートシグネイチャの作成

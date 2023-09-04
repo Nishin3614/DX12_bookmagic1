@@ -63,8 +63,6 @@ public:
 
 private:
 	//	関数	//
-	//	シェーダーの読み込み
-	void LoodShader(void);
 	//	ルートパラメータとルートシグネイチャの作成
 	void CreateRootParameterOrRootSignature(void);
 	//	グラフィックパイプラインの作成

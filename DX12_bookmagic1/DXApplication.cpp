@@ -44,14 +44,38 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 //	描画処理
 void DXApplication::OnRender(void)
 {
-	//	シャドウマップ描画	//
+	//	シャドウマップ描画
+	ShadowMapDraw();
+
+	//	モデル描画
+	ModelDraw();
+
+	//	縮小バッファのレンダーターゲットの描画
+	_pDxWrap->DrawShrinkTextureForBlur();
+
+	//	加工用のレンダーターゲットの描画
+	_pDxWrap->ProceDraw();
+
+	//	バックバッファをレンダーターゲットのセット及び、のクリア
+	_pDxWrap->Clear();
+	//	描画
+	_pDxWrap->Draw();
+	//	フリップ
+	_pDxWrap->Flip();
+}
+
+//	シャドウマップ描画
+void DXApplication::ShadowMapDraw(void)
+{
 	_pPmdRender->PreShadowDraw();
 	_pDxWrap->ShadowDraw();
 	_pPmdAct->ShadowMapDraw();
 	_pPmdAct2->ShadowMapDraw();
+}
 
-
-	//	※いつもの描画をオリジンレンダーターゲットに行う	//
+//	モデル描画
+void DXApplication::ModelDraw(void)
+{
 	//	オリジンレンダーターゲットをセット
 	_pDxWrap->PreOriginDraw();
 	//	PMDレンダラーにて、ルートシグネイチャなどをセット
@@ -61,23 +85,10 @@ void DXApplication::OnRender(void)
 	//	PMDモデルの描画処理
 	_pPmdAct->Draw();
 	_pPmdAct2->Draw();
-
 	//	オリジンレンダーターゲットの描画終了
 	_pDxWrap->EndOriginDraw();
-
-	_pDxWrap->DrawShrinkTextureForBlur();
-	//	加工用のレンダーターゲットの描画
-	_pDxWrap->ProceDraw();
-
-
-	//	バックバッファをレンダーターゲットのセット及び、のクリア
-	_pDxWrap->Clear();
-	//	描画
-	_pDxWrap->Draw();
-	
-	//	フリップ
-	_pDxWrap->Flip();
 }
+
 
 //	オブジェクトの解放処理
 void DXApplication::OnRelease(void)

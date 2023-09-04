@@ -61,7 +61,6 @@ void PMDActor::Init(void)
 
 	//	アニメーションプレイ
 	PlayAnimation();
-
 }
 
 //	更新処理
@@ -695,7 +694,6 @@ void PMDActor::CreateTransformView(void)
 	{
 		assert(SUCCEEDED(result));
 	}
-	auto basicHeapHandle = _BasicDescHeap->GetCPUDescriptorHandleForHeapStart();	//	ヒープの先頭を取得する
 
 	//	定数バッファの作成	//
 	//	定数バッファの生成（座標変換）
@@ -738,6 +736,7 @@ void PMDActor::CreateTransformView(void)
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
 	cbvDesc.BufferLocation = _constBuff->GetGPUVirtualAddress();
 	cbvDesc.SizeInBytes = buffSize;
+	auto basicHeapHandle = _BasicDescHeap->GetCPUDescriptorHandleForHeapStart();	//	ヒープの先頭を取得する
 	_pDxWrap->GetDevice()->CreateConstantBufferView(&cbvDesc, basicHeapHandle);
 }
 
@@ -973,6 +972,13 @@ void PMDActor::CreateMaterialView(void)
 //	PMD読み込み処理
 void PMDActor::LoadPMD(const char* modelpath)
 {
+	//	PMDヘッダー構造体
+	struct PMDHeader
+	{
+		float version;			//	バージョン
+		char model_name[20];	//	モデル名
+		char comment[256];		//	コメント
+	};
 #pragma pack(1)	//	ここから1バイトパッキングとなり、アライメントは発生しない
 	//	読み込み用ボーン構造体
 	struct PMDBone
@@ -991,13 +997,16 @@ void PMDActor::LoadPMD(const char* modelpath)
 	_strModelPath = modelpath;
 	//	ファイルの読み込み
 	auto errow = fopen_s(&fp, modelpath, "rb");
+
+	PMDHeader pmdheader;								//	PMDヘッダー
 	std::vector<PMDBone> pmdBone;						//	ボーン情報
+
 	if (errow == 0)	
 	{
 		Helper::DebugOutputFormatString("PMD読み込み成功\n");
 		//	PMDヘッダー取得
 		fread(signature, sizeof(signature), 1, fp);		//	シグネチャを取得
-		fread(&_pmdheader, sizeof(_pmdheader), 1, fp);	//	PMDヘッダー取得
+		fread(&pmdheader, sizeof(pmdheader), 1, fp);	//	PMDヘッダー取得
 		//	PMD頂点情報取得
 		fread(&_vertNum, sizeof(_vertNum), 1, fp);		//	頂点数取得
 		_vertices.resize(_vertNum * pmdvertex_size);

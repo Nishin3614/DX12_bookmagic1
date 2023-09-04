@@ -70,6 +70,9 @@ public:
 	//	縮小バッファぼかし描画処理
 	void DrawShrinkTextureForBlur(void);
 
+	//	バリア設定処理
+	void SetBarrier(ID3D12Resource* res, D3D12_RESOURCE_STATES pre, D3D12_RESOURCE_STATES dest);
+
 	/*	情報取得関連の処理*/
 	//	スワップチェインの取得
 	ComPtr<IDXGISwapChain4> GetSwapchain(void) { return _swapchain; }

@@ -719,7 +719,7 @@ void Dx12Wrapper::CreateBlurForDOFBuffer(void)
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
-	float clsClr[4] = { 0.5f,0.5f,0.5f,1.0f };
+	float clsClr[4] = { 0.0f,0.0f,0.0f,1.0f };
 	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
 	resDesc.Width >>= 1;	//	縮小バッファなので大きさは半分
 	//	バッファの作成
@@ -1307,21 +1307,16 @@ void Dx12Wrapper::PreOriginDraw(void)
 	//	オリジンレンダーターゲットに描画する前にバリア設定を行う
 	for (auto& res : _origin1Resource)
 	{
-		D3D12_RESOURCE_BARRIER resBarri =
-			CD3DX12_RESOURCE_BARRIER::Transition(res.Get(),
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-				D3D12_RESOURCE_STATE_RENDER_TARGET);
-		_cmdList->ResourceBarrier(1,
-			&resBarri);
-	}
-	//	ブルーム描画前にバリア設定
-	D3D12_RESOURCE_BARRIER resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[0].Get(),
+		SetBarrier(
+			res.Get(),
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
 			D3D12_RESOURCE_STATE_RENDER_TARGET);
-	_cmdList->ResourceBarrier(1,
-		&resBarri);
-
+	}
+	//	ブルーム描画前にバリア設定
+	SetBarrier(
+		_bloomBuffer[0].Get(),
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	//	RTVハンドルのセット
 	auto baseH = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();						//	RTVのスタートポイント
@@ -1359,35 +1354,29 @@ void Dx12Wrapper::PreOriginDraw(void)
 //	オリジンレンダーターゲットの描画終了
 void Dx12Wrapper::EndOriginDraw(void)
 {
+	//	モデル描画後のバリア設定
 	for (auto& res : _origin1Resource)
 	{
-		D3D12_RESOURCE_BARRIER resBarri =
-			CD3DX12_RESOURCE_BARRIER::Transition(res.Get(),
-				D3D12_RESOURCE_STATE_RENDER_TARGET,
-				D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-		//	ペラポリゴン描画後バリア指定
-		_cmdList->ResourceBarrier(1,
-			&resBarri);
-	}
-	D3D12_RESOURCE_BARRIER resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[0].Get(),
+		SetBarrier(
+			res.Get(),
 			D3D12_RESOURCE_STATE_RENDER_TARGET,
 			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	}
 	//	ブルーム描画後バリア指定
-	_cmdList->ResourceBarrier(1,
-		&resBarri);
+	SetBarrier(
+		_bloomBuffer[0].Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 //	加工用のレンダーターゲットの描画
 void Dx12Wrapper::ProceDraw(void)
 {
 	//	加工用描画前バリア指定
-	D3D12_RESOURCE_BARRIER resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_proceResource.Get(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-	_cmdList->ResourceBarrier(1,
-		&resBarri);
+	SetBarrier(
+		_proceResource.Get(),
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	//	加工用RTVをセット
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapPointer;
@@ -1444,12 +1433,10 @@ void Dx12Wrapper::ProceDraw(void)
 
 
 	//	加工用描画後バリア指定
-	resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_proceResource.Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-	_cmdList->ResourceBarrier(1,
-		&resBarri);
+	SetBarrier(
+		_proceResource.Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 //	バックバッファのクリア
@@ -1459,15 +1446,10 @@ void Dx12Wrapper::Clear(void)
 	auto bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 	//	バックバッファのバリア設定
-	CD3DX12_RESOURCE_BARRIER BarrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(
+	SetBarrier(
 		_backBuffers[bbIdx],
 		D3D12_RESOURCE_STATE_PRESENT,		//	直前はPRESENT状態
-		D3D12_RESOURCE_STATE_RENDER_TARGET	//	今からレンダーターゲット状態
-	);
-	_cmdList->ResourceBarrier(
-		1,
-		&BarrierDesc
-	);
+		D3D12_RESOURCE_STATE_RENDER_TARGET);	//	今からレンダーターゲット状態
 
 	//	バックバッファのレンダーターゲットをセット
 	auto rtvHeapPointer = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
@@ -1522,16 +1504,10 @@ void Dx12Wrapper::Flip(void)
 	auto bbIdx = _swapchain->GetCurrentBackBufferIndex();
 
 	//	バックバッファのバリア設定
-	CD3DX12_RESOURCE_BARRIER BarrierDesc = CD3DX12_RESOURCE_BARRIER::Transition(
+	SetBarrier(
 		_backBuffers[bbIdx],
 		D3D12_RESOURCE_STATE_RENDER_TARGET,		//	直前はPRESENT状態
-		D3D12_RESOURCE_STATE_PRESENT	//	今からレンダーターゲット状態
-	);
-	_cmdList->ResourceBarrier(
-		1,
-		&BarrierDesc
-	);
-
+		D3D12_RESOURCE_STATE_PRESENT);			//	今からレンダーターゲット状態
 
 	//	命令のクローズ
 	_cmdList->Close();
@@ -1607,20 +1583,16 @@ void Dx12Wrapper::DrawShrinkTextureForBlur(void)
 	_cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);
 
 	//	縮小バッファはレンダーターゲットに
-	D3D12_RESOURCE_BARRIER resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[1].Get(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-	_cmdList->ResourceBarrier(1,
-		&resBarri);
-	//	通常ぼかしのレンダーターゲット
-	resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_dofBuffer.Get(),
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
-			D3D12_RESOURCE_STATE_RENDER_TARGET);
-	_cmdList->ResourceBarrier(1,
-		&resBarri);
+	SetBarrier(
+		_bloomBuffer[1].Get(),
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
 
+	//	通常ぼかしのレンダーターゲット
+	SetBarrier(
+		_dofBuffer.Get(),
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
 
 	//	レンダーターゲットセット
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
@@ -1670,12 +1642,6 @@ void Dx12Wrapper::DrawShrinkTextureForBlur(void)
 
 	for (int i = 0; i < SHRINKCOUNT; i++)
 	{
-		//Helper::DebugOutputFormatString("[-----%d-----]", i);
-		//Helper::DebugOutputFormatString(" vp\n");
-		//Helper::DebugOutputFormatString("TopLeftX = %f,TopLeftY = %f,Width = %f,Height = %f\n", vp.TopLeftX, vp.TopLeftY, vp.Width, vp.Height);
-		//Helper::DebugOutputFormatString(" sr\n");
-		//Helper::DebugOutputFormatString("left = %ld,top = %ld,right = %ld,bottom = %ld\n", sr.left, sr.top, sr.right, sr.bottom);
-
 		//	描画範囲セット
 		_cmdList->RSSetViewports(1, &vp);
 		_cmdList->RSSetScissorRects(1, &sr);
@@ -1695,13 +1661,28 @@ void Dx12Wrapper::DrawShrinkTextureForBlur(void)
 		sr.right = vp.Width;
 	}
 
-	//	縮小バッファをシェーダーリソースに
-	resBarri =
-		CD3DX12_RESOURCE_BARRIER::Transition(_bloomBuffer[1].Get(),
-			D3D12_RESOURCE_STATE_RENDER_TARGET,
-			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//	縮小高輝度をシェーダーリソースに
+	SetBarrier(
+		_bloomBuffer[1].Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	//	縮小通常をシェーダーリソースに
+	SetBarrier(
+		_dofBuffer.Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
+//	バリア設定
+void Dx12Wrapper::SetBarrier(ID3D12Resource* res, D3D12_RESOURCE_STATES pre, D3D12_RESOURCE_STATES dest)
+{
+	auto resBarri =
+		CD3DX12_RESOURCE_BARRIER::Transition(res,
+			pre,
+			dest);
 	_cmdList->ResourceBarrier(1,
 		&resBarri);
+
 }
 
 //	テクスチャの読み込み処理
