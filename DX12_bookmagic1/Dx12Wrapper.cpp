@@ -21,24 +21,33 @@ namespace//列挙型用
 		SHRINKBLOOM,
 		MAX_BLOOM,
 
-		PROCE = MAX_BLOOM,	//	加工用
+		DOF = MAX_BLOOM,
+		MAX_DOF,
+
+		PROCE = MAX_DOF,	//	加工用
 		MAX
 	};
 
 	//	オリジン用SRV,CBV種類
 	enum class E_ORIGIN_SRV : int
 	{
-		//	SRV
+		/*	SRV	*/
+		//	通常描画
 		COL,	//	通常カラー
 		NORMAL,	//	法線
 		MAX_NORMALDROW,
 
+		//	ブルーム
 		BLOOM = MAX_NORMALDROW,
 		SHRINKBLOOM,
 
+		//	被写界深度
+		DOF,	//	被写界深度
+
+		//	画像加工用
 		PROCE,	//	加工用
 
-		//	CBV
+		/*	CBV	*/
 		BOKE,
 
 		MAX
@@ -518,6 +527,9 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		}
 	}
 
+	//	被写界深度バッファ作成
+	CreateBlurForDOFBuffer();
+
 	//	加工用のレンダーターゲット作成
 	CreateProcessRenderTarget();
 
@@ -571,6 +583,15 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		);
 		offset += incSize;
 	}
+
+	//	被写界深度用のレンダーターゲットビュー作成
+	offset = incSize * static_cast<int>(E_ORIGIN_RTV::DOF);
+	handle.InitOffsetted(baseH, offset);
+	_dev->CreateRenderTargetView(
+		_dofBuffer.Get(),
+		&rtvDesc,
+		handle
+	);
 
 	//	加工用のレンダーターゲットビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_RTV::PROCE);
@@ -631,6 +652,15 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 		offset += incSize;
 	}
 
+	//	被写界深度用のシェーダーリソース作成
+	offset = incSize * static_cast<int>(E_ORIGIN_SRV::DOF);
+	handle.InitOffsetted(baseH, offset);
+	_dev->CreateShaderResourceView(
+		_dofBuffer.Get(),
+		&srvDesc,
+		handle
+	);
+
 	//	加工用のシェーダーリソースビュー作成
 	offset = incSize * static_cast<int>(E_ORIGIN_SRV::PROCE);
 	handle.InitOffsetted(baseH, offset);
@@ -675,6 +705,34 @@ void Dx12Wrapper::CreateProcessRenderTarget(void)
 	if (FAILED(result))
 	{
 		Helper::DebugOutputFormatString("マルチパスレンダリング：バッファ作成失敗");
+		return;
+	}
+}
+
+//	被写界深度用バッファ作成
+void Dx12Wrapper::CreateBlurForDOFBuffer(void)
+{
+	//	使っているバックバッファの情報を利用する
+	auto& bbuff = _backBuffers[0];
+	auto resDesc = bbuff->GetDesc();
+	resDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	//	ヒーププロパティー設定
+	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	//	レンダリング時のクリア値と同じ値
+	float clsClr[4] = { 0.5f,0.5f,0.5f,1.0f };
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
+	resDesc.Width >>= 1;	//	縮小バッファなので大きさは半分
+	//	バッファの作成
+	auto result = _dev->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		&clearValue,
+		IID_PPV_ARGS(_dofBuffer.ReleaseAndGetAddressOf()));
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("被写界深度用バッファ作成失敗");
 		return;
 	}
 }
@@ -758,21 +816,21 @@ void Dx12Wrapper::CreatePeraRootSignature(void)
 {
 	//	レンジの設定
 	D3D12_DESCRIPTOR_RANGE ranges[5] = {};
-	//	通常カラー、法線セット、高輝度
+	//	通常カラー、法線セット、高輝度、縮小高輝度、縮小通常
 	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[0].NumDescriptors = 4;	//	t0,t1,t2,t3
+	ranges[0].NumDescriptors = 5;	//	t0,t1,t2,t3,t4
 	//	ぼけ定数バッファセット
 	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	ranges[1].NumDescriptors = 1;	//	b0
 	//	ポストエフェクト用のバッファセット
 	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[2].NumDescriptors = 1;	//	t4
+	ranges[2].NumDescriptors = 1;	//	t5
 	//	深度値テクスチャ用
 	ranges[3].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[3].NumDescriptors = 1;	//	t5
+	ranges[3].NumDescriptors = 1;	//	t6
 	//	ライトデプステクスチャ用
 	ranges[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
-	ranges[4].NumDescriptors = 1;	//	t6
+	ranges[4].NumDescriptors = 1;	//	t7
 
 	//	レギスター設定
 	UINT nSRVRegister = 0;
@@ -785,6 +843,7 @@ void Dx12Wrapper::CreatePeraRootSignature(void)
 			range.BaseShaderRegister = nSRVRegister;
 			nSRVRegister += range.NumDescriptors;
 		}
+		//	CBV
 		else if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
 		{
 			range.BaseShaderRegister = nCBVRegister;
@@ -1003,6 +1062,8 @@ void Dx12Wrapper::CreatePeraGraphicPipeLine(void)
 	Helper::DebugShaderError(result, errBlob.Get());
 	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
 	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	gpsDesc.RTVFormats[1] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+	gpsDesc.NumRenderTargets = 2;
 	result = _dev->CreateGraphicsPipelineState(
 		&gpsDesc,
 		IID_PPV_ARGS(_blurPipeline.ReleaseAndGetAddressOf())
@@ -1552,22 +1613,45 @@ void Dx12Wrapper::DrawShrinkTextureForBlur(void)
 			D3D12_RESOURCE_STATE_RENDER_TARGET);
 	_cmdList->ResourceBarrier(1,
 		&resBarri);
+	//	通常ぼかしのレンダーターゲット
+	resBarri =
+		CD3DX12_RESOURCE_BARRIER::Transition(_dofBuffer.Get(),
+			D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+			D3D12_RESOURCE_STATE_RENDER_TARGET);
+	_cmdList->ResourceBarrier(1,
+		&resBarri);
+
 
 	//	レンダーターゲットセット
-	auto rtvHandle = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();
-	rtvHandle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV) * static_cast<int>(E_ORIGIN_RTV::SHRINKBLOOM);
-	_cmdList->OMSetRenderTargets(1, &rtvHandle, false, nullptr);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandles[2];
+	auto baseH = _originRTVHeap->GetCPUDescriptorHandleForHeapStart();
+	auto incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	rtvHandles[0].InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_RTV::SHRINKBLOOM));
+	rtvHandles[1].InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_RTV::DOF));
+	_cmdList->OMSetRenderTargets(2, rtvHandles, false, nullptr);
+	//	レンダーターゲットクリア
 	float clsClr[4] = { 0.0f,0.0f,0.0f,1.0f };
-	_cmdList->ClearRenderTargetView(rtvHandle, clsClr, 0, nullptr);
+	for (auto& rtv : rtvHandles)
+	{
+		_cmdList->ClearRenderTargetView(rtv, clsClr, 0, nullptr);
+	}
 
 	//	シェーダーリソースセット
 	_cmdList->SetDescriptorHeaps(1, _originSRVHeap.GetAddressOf());
-	//	高輝度テクスチャーセット
+
 	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle;
+	auto srvH = _originSRVHeap->GetGPUDescriptorHandleForHeapStart();
+	incSize = _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	//	通常レンダリングセット
 	srvHandle.InitOffsetted(
-		_originSRVHeap->GetGPUDescriptorHandleForHeapStart(),
-		_dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) * static_cast<int>(E_ORIGIN_SRV::BLOOM));
-	_cmdList->SetGraphicsRootDescriptorTable(0, srvHandle);
+		srvH,
+		incSize * static_cast<int>(E_ORIGIN_SRV::COL));
+	_cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::COL), srvHandle);
+	//	高輝度テクスチャーセット
+	srvHandle.InitOffsetted(
+		srvH,
+		incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM));
+	_cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::BLOOM), srvHandle);
 
 	//	縮小バッファの初期サイズ設定
 	//		原寸サイズの半分のサイズに初期化している

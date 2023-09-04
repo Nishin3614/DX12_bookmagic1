@@ -1,12 +1,13 @@
 Texture2D<float4> tex : register(t0);	//	通常カラーテクスチャ
 Texture2D<float4> texNormal : register(t1);	//	法線
 Texture2D<float4> highLumTex : register(t2);	//	高輝度
-Texture2D<float4> ShrinkHightLumTex : register(t3);	//	高輝度縮小バッファ
-Texture2D<float4> effectTex : register(t4);	//	ポストエフェクトテクスチャー
+Texture2D<float4> shrinkHightLumTex : register(t3);	//	縮小高輝度
+Texture2D<float4> shrinkTex	: register(t4);			//	縮小通常
+Texture2D<float4> effectTex : register(t5);	//	ポストエフェクトテクスチャー
 
 //	深度値検証用
-Texture2D<float4> depthTex : register(t5);	//	深度値テクスチャー
-Texture2D<float4> lightDepthTex : register(t6);	//	ライドデプステクスチャー
+Texture2D<float4> depthTex : register(t6);	//	深度値テクスチャー
+Texture2D<float4> lightDepthTex : register(t7);	//	ライドデプステクスチャー
 
 SamplerState smp : register(s0);			//	サンプラー
 
@@ -23,4 +24,11 @@ struct Output
 {
 	float4 svpos : SV_POSITION;
 	float2 uv : TEXCOORD;
+};
+
+//	ぼかし出力用変数
+struct BlurOutput
+{
+	float4 highLum : SV_Target0;	//	高輝度
+	float4 col : SV_Target1;		//	通常のレンダリング結果
 };

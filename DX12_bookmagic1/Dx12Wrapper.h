@@ -100,7 +100,10 @@ private:
 	void CreateViewProjectionView(void);
 	//	モデルなどの描画用のレンダーターゲットを作成
 	void CreateOriginRenderTarget(void);
+	//	加工用バッファ作成
 	void CreateProcessRenderTarget(void);
+	//	被写界深度用バッファ作成
+	void CreateBlurForDOFBuffer(void);
 	//	ペラポリゴンの頂点バッファ作成
 	void CreatePeraVertexBuff(void);
 	//	ぼけ定数バッファ作成
@@ -173,4 +176,7 @@ private:
 	//	ブルーム用バッファ
 	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffer;	//	ブルーム用バッファ
 	ComPtr<ID3D12PipelineState> _blurPipeline;			//	画面全体ぼかし用パイプライン
+
+	//	被写界深度用バッファ
+	ComPtr<ID3D12Resource> _dofBuffer;	//	被写界深度用ぼかしバッファ
 };

@@ -241,6 +241,103 @@ float4 GaussianBlur(Output input)
 	return float4(ret.rgb,col.a);
 }
 
+//	ブルーム処理
+float4 Bloom(Output input)
+{
+	//	テクスチャのサイズ情報取得
+	float w, h, level;
+	tex.GetDimensions(
+		0,			//	ミップレベル
+		w,			//	幅
+		h, 			//	高さ
+		level		//	ミップマップのレベル数
+	);
+	//	画素間
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+
+	//	縮小高輝度の計算
+	float4 bloomAccum = float4(0, 0, 0, 0);
+	float2 uvSize = float2(1.0f, 0.5f);
+	float2 uvOfst = float2(0, 0);
+	for (int i = 0; i < 8; i++)
+	{
+		bloomAccum += DetailBlur(
+			shrinkHightLumTex, smp, input.uv * uvSize + uvOfst, dx, dy
+		);
+		uvOfst.y += uvSize.y;
+		uvSize *= 0.5f;
+	}
+	return tex.Sample(smp, input.uv)
+		+ DetailBlur(highLumTex, smp, input.uv, dx, dy)	//	1枚目の高輝度テクスチャをぼかす
+		+ saturate(bloomAccum)							//	縮小ぼかし済み
+		;
+}
+
+//	被写界深度によるぼかし処理
+float4 Dof(Output input)
+{
+	//	テクスチャのサイズ情報取得
+	float w, h, level;
+	tex.GetDimensions(
+		0,			//	ミップレベル
+		w,			//	幅
+		h, 			//	高さ
+		level		//	ミップマップのレベル数
+	);
+	//	画素間
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+
+	//	真ん中を基準とした深度値の差
+	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f))
+		- depthTex.Sample(smp, input.uv));
+	depthDiff = pow(depthDiff, 0.5f);	//	深度値の近い値でも変化が出やすいようにする
+	float2 uvSize = float2(1.0f, 0.5f);
+	float2 uvOfst = float2(0, 0);
+
+	float t = depthDiff * 8;
+	float no;
+	t = modf(t, no);	//	no:整数値、ref:小数値
+	float4 retColors[2];
+
+	//	通常テクスチャ
+	retColors[0] = tex.Sample(smp, input.uv);
+
+	//	整数部分が0の場合
+	if (no == 0.0f)
+	{
+		//	通常/2サイズのぼかしテクスチャ
+		retColors[1] = DetailBlur(shrinkTex, smp, input.uv * uvSize + uvOfst, dx, dy);
+		//retColors[1] = tex.Sample(smp, input.uv);
+
+	}
+	//	整数部分が0以外の場合
+	else
+	{
+		//	縮小通常のテクスチャー分ループ
+		for (int i = 0; i <= 8; ++i)
+		{
+			//	0未満の場合スキップ
+			if (i - no < 0)
+			{
+				continue;
+			}
+			//	1超過の場合、ループを抜ける
+			if (i - no > 1)
+			{
+				break;
+			}
+			//	特定の縮小テクスチャのぼかしを取得
+			retColors[i - no] = DetailBlur(
+				shrinkTex, smp, input.uv * uvSize + uvOfst, dx, dy);
+			uvOfst.y += uvSize.y;
+			uvSize *= 0.5f;
+		}
+	}
+	return lerp(retColors[0], retColors[1], t);
+}
+
 //	ペラポリゴン用のピクセルシェーダー	//
 float4 ps(Output input) : SV_Target
 {
@@ -261,7 +358,7 @@ float4 ps(Output input) : SV_Target
 	//	法線出力
 	else if (input.uv.x < 0.2f && input.uv.y < 0.6f)
 	{
-		return texNormal.Sample(smp,(input.uv - float2(0,0.4f)) * 5);
+		return shrinkTex.Sample(smp,(input.uv - float2(0,0.4f)) * 5);
 	}
 	//	高輝度出力
 	else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
@@ -271,38 +368,12 @@ float4 ps(Output input) : SV_Target
 	//	高輝度縮小バッファ出力
 	else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
 	{
-		return ShrinkHightLumTex.Sample(smp, (input.uv - float2(0, 0.8f)) * 5);
+		return shrinkHightLumTex.Sample(smp, (input.uv - float2(0, 0.8f)) * 5);
 	}
-	//	テクスチャのサイズ情報取得
-	float w, h, level;
-	tex.GetDimensions(
-		0,			//	ミップレベル
-		w,			//	幅
-		h, 			//	高さ
-		level		//	ミップマップのレベル数
-	);
-	//	画素間
-	float dx = 1.0f / w;
-	float dy = 1.0f / h;
-
-	//	縮小高輝度の計算
-	float4 bloomAccum = float4(0, 0, 0, 0);
-	float2 uvSize = float2(1.0f, 0.5f);
-	float2 uvOfst = float2(0, 0);
-	for (int i = 0; i < 8; i++)
-	{
-		bloomAccum += DetailBlur(
-			ShrinkHightLumTex, smp, input.uv * uvSize + uvOfst, dx, dy
-		);
-		uvOfst.y += uvSize.y;
-		uvSize *= 0.5f;
-	}
-
-	//	通常描画
-	return tex.Sample(smp, input.uv)
-		+ DetailBlur(highLumTex, smp, input.uv, dx, dy)	//	1枚目の高輝度テクスチャをぼかす
-		+ saturate(bloomAccum)							//	縮小ぼかし済み
-		;
+	//	被写界深度ぼかし処理
+	return Dof(input);
+	//	ブルーム描画
+	return Bloom(input);
 	//	モノクロ化
 	return GaussianBlur(input);
 
@@ -360,11 +431,16 @@ float4 VerticalBokehPS(Output input) : SV_Target
 }
 
 //	メインテクスチャを詳細ぼかしピクセルシェーダー
-float4 BlurPS(Output input) : SV_Target
+BlurOutput BlurPS(Output input)
 {
 	float w,h,miplevels;
 	tex.GetDimensions(0, w, h, miplevels);
-	return DetailBlur(tex, smp, input.uv, 1.0f / w, 1.0f / h);
+	float dx = 1.0f / w;
+	float dy = 1.0f / h;
+	BlurOutput ret;
+	ret.col = DetailBlur(tex, smp, input.uv, dx, dy);
+	ret.highLum = DetailBlur(highLumTex, smp, input.uv, dx, dy);
+	return ret;
 }
 
 //	ポストエフェクトPS
