@@ -53,23 +53,10 @@ public:
 	void Init(HWND hwnd);
 
 	/*	描画関連の処理	*/
-	//	最終描画
-	void Draw(void);
 	//	クリア
 	void Clear(void);
 	//	フリップ
 	void Flip(void);
-	//	マルチパスレンダリング用描画1
-	void PreOriginDraw(void);
-	void EndOriginDraw(void);
-	//	マルチパスレンダリング用描画2
-	void ProceDraw(void);
-	void ShadowDraw(void);
-	//	シーンビューのセット命令
-	void CommandSet_SceneView(void);
-	//	縮小バッファぼかし描画処理
-	void DrawShrinkTextureForBlur(void);
-
 	//	バリア設定処理
 	void SetBarrier(ID3D12Resource* res, D3D12_RESOURCE_STATES pre, D3D12_RESOURCE_STATES dest);
 
@@ -84,6 +71,22 @@ public:
 	ComPtr<ID3D12Resource> LoadTextureFromFile(std::string& texPath);
 	//	各テクスチャ無バッファ取得
 	ComPtr<ID3D12Resource> GetNoneTexture(E_NONETEX nTex) { return _noneTexTable[static_cast<int>(nTex)]; }
+
+
+	/*	---わけたい処理---	*/
+	//	最終描画
+	void EndDraw(void);
+	//	マルチパスレンダリング用描画1
+	void PreOriginDraw(void);
+	void EndOriginDraw(void);
+	//	マルチパスレンダリング用描画2
+	void ProceDraw(void);
+	void ShadowDraw(void);
+	//	シーンビューのセット命令
+	void CommandSet_SceneView(void);
+	//	縮小バッファぼかし描画処理
+	void DrawShrinkTextureForBlur(void);
+
 
 private:
 

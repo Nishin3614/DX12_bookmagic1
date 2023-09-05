@@ -59,7 +59,7 @@ void DXApplication::OnRender(void)
 	//	バックバッファをレンダーターゲットのセット及び、のクリア
 	_pDxWrap->Clear();
 	//	描画
-	_pDxWrap->Draw();
+	_pDxWrap->EndDraw();
 	//	フリップ
 	_pDxWrap->Flip();
 }

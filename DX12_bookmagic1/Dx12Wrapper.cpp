@@ -61,6 +61,8 @@ using namespace DirectX;
 
 //	定数定義
 constexpr float shadow_difinition = 40.0f;	//	ライトデプスの縦横サイズ
+constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
+constexpr float NONE_CLSCLR[4] = { 0.0f,0.0f,0.0f,1.0f };	//	合成するレンダーターゲットのクリアカラー
 
 //	コンストラクタ
 Dx12Wrapper::Dx12Wrapper() :
@@ -485,8 +487,7 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
-	float clsClr[4] = { 0.5f,0.5f,0.5f,1.0f };
-	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, CLSCLR);
 	//	バッファの作成
 	for (auto& res : _origin1Resource)
 	{
@@ -505,8 +506,7 @@ void Dx12Wrapper::CreateOriginRenderTarget(void)
 	}
 
 	//	レンダリング時のクリア値と同じ値
-	clsClr[0] = clsClr[1] = clsClr[2] = 0.0f;
-	clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
+	clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, NONE_CLSCLR);
 	//	ブルームバッファの作成
 	for (auto& res : _bloomBuffer)
 	{
@@ -692,8 +692,7 @@ void Dx12Wrapper::CreateProcessRenderTarget(void)
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
-	float clsClr[4] = { 0.5f,0.5f,0.5f,1.0f };
-	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, CLSCLR);
 	//	バッファの作成
 	auto result = _dev->CreateCommittedResource(
 		&heapProp,
@@ -719,8 +718,7 @@ void Dx12Wrapper::CreateBlurForDOFBuffer(void)
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
-	float clsClr[4] = { 0.0f,0.0f,0.0f,1.0f };
-	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, clsClr);
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, NONE_CLSCLR);
 	resDesc.Width >>= 1;	//	縮小バッファなので大きさは半分
 	//	バッファの作成
 	auto result = _dev->CreateCommittedResource(
@@ -1335,16 +1333,18 @@ void Dx12Wrapper::PreOriginDraw(void)
 	_cmdList->OMSetRenderTargets(
 		(static_cast<int>(E_ORIGIN_RTV::BLOOM) + 1), handles, false, &dsvHeapPointer);
 	//クリアカラー		 R   G   B   A
-	float clsClr[4] = { 0.5,0.5,0.5,1.0 };
 	//	オリジン用のレンダーターゲットビューをクリア
 	for (int i = 0;i<_countof(handles);i++)
 	{
 		//	ブルームのクリアカラーを黒にする
 		if (i == static_cast<int>(E_ORIGIN_RTV::BLOOM))
 		{
-			clsClr[0] = clsClr[1] = clsClr[2] = 0.0f; clsClr[3] = 1.0f;
+			_cmdList->ClearRenderTargetView(handles[i], NONE_CLSCLR, 0, nullptr);
 		}
-		_cmdList->ClearRenderTargetView(handles[i], clsClr, 0, nullptr);
+		else
+		{
+			_cmdList->ClearRenderTargetView(handles[i], CLSCLR, 0, nullptr);
+		}
 	}
 	//	深度バッファビューをクリア
 	_cmdList->ClearDepthStencilView(dsvHeapPointer,
@@ -1387,8 +1387,7 @@ void Dx12Wrapper::ProceDraw(void)
 	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
 
 	//	クリアカラー	
-	float clsClr[4] = { 0.5f,0.5f,0.5f,1.0f };
-	_cmdList->ClearRenderTargetView(rtvHeapPointer, clsClr, 0, nullptr);
+	_cmdList->ClearRenderTargetView(rtvHeapPointer, CLSCLR, 0, nullptr);
 
 	D3D12_VIEWPORT vp =
 		CD3DX12_VIEWPORT(0.0f, 0.0f, _windowSize.cx, _windowSize.cy);
@@ -1439,30 +1438,8 @@ void Dx12Wrapper::ProceDraw(void)
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-//	バックバッファのクリア
-void Dx12Wrapper::Clear(void)
-{
-	//	バックバッファのインデックスを取得する
-	auto bbIdx = _swapchain->GetCurrentBackBufferIndex();
-
-	//	バックバッファのバリア設定
-	SetBarrier(
-		_backBuffers[bbIdx],
-		D3D12_RESOURCE_STATE_PRESENT,		//	直前はPRESENT状態
-		D3D12_RESOURCE_STATE_RENDER_TARGET);	//	今からレンダーターゲット状態
-
-	//	バックバッファのレンダーターゲットをセット
-	auto rtvHeapPointer = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
-	rtvHeapPointer.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
-
-	//	バックバッファをクリア
-	float clsClr[4] = { 0.5f,0.5f,0.5f,1.0f };
-	_cmdList->ClearRenderTargetView(rtvHeapPointer, clsClr, 0, nullptr);
-}
-
 //	（ペラポリゴン仮の）描画
-void Dx12Wrapper::Draw(void)
+void Dx12Wrapper::EndDraw(void)
 {
 	D3D12_VIEWPORT vp =
 		CD3DX12_VIEWPORT(0.0f, 0.0f, _windowSize.cx, _windowSize.cy);
@@ -1495,6 +1472,27 @@ void Dx12Wrapper::Draw(void)
 	_cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	_cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);						//	ペラポリゴン用の頂点バッファビューセット
 	_cmdList->DrawInstanced(4, 1, 0, 0);
+}
+
+//	バックバッファのクリア
+void Dx12Wrapper::Clear(void)
+{
+	//	バックバッファのインデックスを取得する
+	auto bbIdx = _swapchain->GetCurrentBackBufferIndex();
+
+	//	バックバッファのバリア設定
+	SetBarrier(
+		_backBuffers[bbIdx],
+		D3D12_RESOURCE_STATE_PRESENT,		//	直前はPRESENT状態
+		D3D12_RESOURCE_STATE_RENDER_TARGET);	//	今からレンダーターゲット状態
+
+	//	バックバッファのレンダーターゲットをセット
+	auto rtvHeapPointer = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
+	rtvHeapPointer.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
+
+	//	バックバッファをクリア
+	_cmdList->ClearRenderTargetView(rtvHeapPointer, CLSCLR, 0, nullptr);
 }
 
 //	フリップ処理
@@ -1602,10 +1600,9 @@ void Dx12Wrapper::DrawShrinkTextureForBlur(void)
 	rtvHandles[1].InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_RTV::DOF));
 	_cmdList->OMSetRenderTargets(2, rtvHandles, false, nullptr);
 	//	レンダーターゲットクリア
-	float clsClr[4] = { 0.0f,0.0f,0.0f,1.0f };
 	for (auto& rtv : rtvHandles)
 	{
-		_cmdList->ClearRenderTargetView(rtv, clsClr, 0, nullptr);
+		_cmdList->ClearRenderTargetView(rtv, NONE_CLSCLR, 0, nullptr);
 	}
 
 	//	シェーダーリソースセット
