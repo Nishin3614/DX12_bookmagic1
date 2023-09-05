@@ -7,6 +7,7 @@
 
 //	クラスの前方宣言
 class Dx12Wrapper;
+class VisualEffect;
 class PMDActor;
 class PMDRenderer;
 //	クラス宣言
@@ -28,6 +29,9 @@ public:
 	//	更新処理
 	void OnUpdate(void);
 
+	/*	取得関数	*/
+	Dx12Wrapper* GetWrapper(void) { return _pDxWrap; }
+
 private:
 	//	関数	//
 	// シングルトンのため、コンストラクタをprivateに
@@ -46,6 +50,7 @@ private:
 
 	//	変数	//
 	Dx12Wrapper* _pDxWrap;									//	DirectX周りのクラス
+	VisualEffect* _pVFX;										//	ビジュアルエフェクト
 	PMDActor* _pPmdAct;										//	PMDアクタークラス
 	PMDActor* _pPmdAct2;
 	PMDRenderer* _pPmdRender;								//	PMDレンダラークラス

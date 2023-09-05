@@ -147,6 +147,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PMDActor.cpp" />
     <ClCompile Include="PMDRenderer.cpp" />
+    <ClCompile Include="VisualEffect.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -155,6 +156,7 @@
     <ClInclude Include="helper.h" />
     <ClInclude Include="PMDActor.h" />
     <ClInclude Include="PMDRenderer.h" />
+    <ClInclude Include="VisualEffect.h" />
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>
   <ItemGroup>

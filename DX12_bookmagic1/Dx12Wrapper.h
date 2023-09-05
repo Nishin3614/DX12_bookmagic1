@@ -4,7 +4,6 @@
 #include <DirectXTex.h>
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#include <vector>
 #include <wrl.h>
 #include <map>
 #include <string>
@@ -67,26 +66,22 @@ public:
 	ComPtr<ID3D12Device> GetDevice(void) { return _dev; }
 	//	コマンドリストの取得
 	ComPtr<ID3D12GraphicsCommandList> GetCmdList(void) { return _cmdList; }
+	//	深度バッファ用のディスクリプタヒープ取得
+	ComPtr < ID3D12DescriptorHeap> GetDsvDescHeap(void) { return _dsvHeap; }
+	//	深度バッファSRV用のディスクリプタヒープ取得
+	ComPtr < ID3D12DescriptorHeap> GetDepthSRVDescHeap(void) { return _depthSRVHeap; }
+	//	バックバッファのディスク情報取得
+	D3D12_RESOURCE_DESC GetBackDesc(void) { return _backBuffers[0]->GetDesc(); }
+	//	ディスクリプタヒープのディスク情報取得
+	D3D12_DESCRIPTOR_HEAP_DESC GetDescriptorHeapD(void) { return rtvHeaps->GetDesc(); }
 	//	テクスチャー読み込み
 	ComPtr<ID3D12Resource> LoadTextureFromFile(std::string& texPath);
 	//	各テクスチャ無バッファ取得
 	ComPtr<ID3D12Resource> GetNoneTexture(E_NONETEX nTex) { return _noneTexTable[static_cast<int>(nTex)]; }
 
-
-	/*	---わけたい処理---	*/
-	//	最終描画
-	void EndDraw(void);
-	//	マルチパスレンダリング用描画1
-	void PreOriginDraw(void);
-	void EndOriginDraw(void);
-	//	マルチパスレンダリング用描画2
-	void ProceDraw(void);
 	void ShadowDraw(void);
 	//	シーンビューのセット命令
 	void CommandSet_SceneView(void);
-	//	縮小バッファぼかし描画処理
-	void DrawShrinkTextureForBlur(void);
-
 
 private:
 
@@ -104,22 +99,7 @@ private:
 	void CreateDepthView(void);
 	//	ビュー・プロジェクション行列バッファの作成
 	void CreateViewProjectionView(void);
-	//	モデルなどの描画用のレンダーターゲットを作成
-	void CreateOriginRenderTarget(void);
-	//	加工用バッファ作成
-	void CreateProcessRenderTarget(void);
-	//	被写界深度用バッファ作成
-	void CreateBlurForDOFBuffer(void);
-	//	ペラポリゴンの頂点バッファ作成
-	void CreatePeraVertexBuff(void);
-	//	ぼけ定数バッファ作成
-	void CreateBokeConstantBuff(void);
-	//	ペラポリゴン用のルートシグネイチャ作成
-	void CreatePeraRootSignature(void);
-	//	ペラポリゴン用のパイプライン作成
-	void CreatePeraGraphicPipeLine(void);
-	//	エフェクト用のバッファとビュー作成
-	bool CreateEffectBufferAndView(void);
+
 	ComPtr < ID3D12Resource> CreateWhiteTexture(void);			//	白テクスチャーバッファ作成
 	ComPtr < ID3D12Resource> CreateBlackTexture(void);			//	黒テクスチャーバッファ作成
 	ComPtr < ID3D12Resource> CreateGrayGradationTexture(void);	//	グラデーションバッファ作成
@@ -135,8 +115,6 @@ private:
 	std::vector< ID3D12Resource*> _backBuffers;			//	バックバッファ
 	ComPtr < ID3D12Fence> _fence = nullptr;						//	フェンス
 	UINT64 _fenceVal = 0;								//	フェイス値
-	ComPtr < ID3D12DescriptorHeap> _dsvHeap = nullptr;			//	深度バッファ用のディスクリプタヒープ
-	ComPtr < ID3D12Resource> _depthBuffer = nullptr;			//	深度バッファ
 
 	ComPtr<ID3D12DescriptorHeap> _ScenevHeap = nullptr;	//	シーンディスクリプタ
 	ComPtr<ID3D12Resource> _SceneBuffer = nullptr;		//	シーンバッファ
@@ -147,42 +125,13 @@ private:
 	DirectX::XMFLOAT3 _up;		//	上ベクトル
 	SIZE _windowSize;			//	ウィンドウサイズ
 
-
 	//	テクスチャーバッファのターブルなど	//
 	std::map<std::string, ComPtr<ID3D12Resource>> _resourceTable;	//	ファイル名パスとリソースのマップテーブル
 	ComPtr < ID3D12Resource> _noneTexTable[3];				//	ファイルなしテクスチャバッファ
 
-
-	//	モデルなどのレンダーターゲット先用の変数
-	std::array<ComPtr<ID3D12Resource>,2> _origin1Resource;	//	貼りつけ元のリソース
-											//	ペラポリゴンに張り付けるためのテクスチャリソース仮(この中に今まで作成してきたモデルやらが描画されている）
-	ComPtr<ID3D12DescriptorHeap> _originRTVHeap;	//	レンダーターゲット用
-	ComPtr<ID3D12DescriptorHeap> _originSRVHeap;	//	テクスチャ用
-
-	//	ペラポリゴン作成用の変数
-	ComPtr<ID3D12Resource> _prPoriVB;			//	ペラポリゴン頂点バッファ
-	D3D12_VERTEX_BUFFER_VIEW _prPoriVBV;		//	ペラポリゴン頂点バッファビュー
-	ComPtr<ID3D12RootSignature> _prPoriRS;	//	ペラポリゴン用ルートシグネイチャー
-	ComPtr <ID3D12PipelineState> _prPoriPipeline;	//	ペラポリゴン用グラフィックパイプラインステート
-	ComPtr<ID3D12Resource> _bokehParamBuffer;		//	ぼかし用の定数バッファ
-
-	//	加工用のレンダーターゲット作成用の変数
-	ComPtr<ID3D12Resource> _proceResource;	//	ペラポリゴンに張り付けられたリソースを加工するための変数
-	ComPtr<ID3D12PipelineState> _procePipeline;	//	加工用グラフィックパイプライン
-
-	//	歪みテクスチャー用
-	ComPtr<ID3D12DescriptorHeap> _effectSRVHeap;
-	ComPtr<ID3D12Resource> _efffectTexBuffer;
-	ComPtr<ID3D12PipelineState> _effectPipeline;
-
-	//	シャドウマップ用深度バッファ
+	//	深度用バッファ
+	ComPtr < ID3D12DescriptorHeap> _dsvHeap = nullptr;			//	深度バッファ用のディスクリプタヒープ
+	ComPtr < ID3D12Resource> _depthBuffer = nullptr;			//	深度バッファ
 	ComPtr<ID3D12Resource> _lightDepthBuffer;
 	ComPtr<ID3D12DescriptorHeap> _depthSRVHeap = nullptr;		//	深度値テクスチャー用ヒープ
-
-	//	ブルーム用バッファ
-	std::array<ComPtr<ID3D12Resource>, 2> _bloomBuffer;	//	ブルーム用バッファ
-	ComPtr<ID3D12PipelineState> _blurPipeline;			//	画面全体ぼかし用パイプライン
-
-	//	被写界深度用バッファ
-	ComPtr<ID3D12Resource> _dofBuffer;	//	被写界深度用ぼかしバッファ
 };

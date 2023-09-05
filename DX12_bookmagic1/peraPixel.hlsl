@@ -341,19 +341,20 @@ float4 Dof(Output input)
 //	ペラポリゴン用のピクセルシェーダー	//
 float4 ps(Output input) : SV_Target
 {
+	//return depthTex.Sample(smp, input.uv);
 	//	深度出力
 	if (input.uv.x < 0.2f && input.uv.y < 0.2f)
 	{
 		float dep = depthTex.Sample(smp, input.uv * 5);
-		dep = 1.0f - pow(dep, 30);
+		dep = 1.0f - pow(dep, 1);
 		return float4(dep, dep, dep, 1.0f);
 	}
 	//	ライトからの深度出力
 	else if (input.uv.x < 0.2f && input.uv.y < 0.4f)
 	{
-		float lightdep = lightDepthTex.Sample(smp, (input.uv - float2(0.0f,0.2f)) * 5);
-		lightdep = 1.0f - lightdep;
-		return float4(lightdep, lightdep, lightdep, 1.0f);
+		//float lightdep = lightDepthTex.Sample(smp, (input.uv - float2(0.0f,0.2f)) * 5);
+		//lightdep = 1.0f - lightdep;
+		//return float4(lightdep, lightdep, lightdep, 1.0f);
 	}
 	//	法線出力
 	else if (input.uv.x < 0.2f && input.uv.y < 0.6f)
