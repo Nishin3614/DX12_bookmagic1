@@ -291,7 +291,7 @@ float4 Dof(Output input)
 
 	//	真ん中を基準とした深度値の差
 	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f))
-		- depthTex.Sample(smp, input.uv));
+		- depthTex.Sample(smp, input.uv)).r;
 	depthDiff = pow(depthDiff, 0.5f);	//	深度値の近い値でも変化が出やすいようにする
 	float2 uvSize = float2(1.0f, 0.5f);
 	float2 uvOfst = float2(0, 0);
@@ -345,8 +345,8 @@ float4 ps(Output input) : SV_Target
 	//	深度出力
 	if (input.uv.x < 0.2f && input.uv.y < 0.2f)
 	{
-		float dep = depthTex.Sample(smp, input.uv * 5);
-		dep = 1.0f - pow(dep, 1);
+		float dep = depthTex.Sample(smp, input.uv * 5).r;
+		dep = 1.0f - pow(dep, 20);
 		return float4(dep, dep, dep, 1.0f);
 	}
 	//	ライトからの深度出力

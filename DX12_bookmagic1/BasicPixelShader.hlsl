@@ -34,6 +34,7 @@ PixelOutput BasicPS(Output input)
 		output.col = float4(0.3f, 0.3f, 0.3f, 1.0f);
 		output.normal.rgb = float3((input.normal.xyz + 1.0f) / 2.0f);
 		output.normal.a = 1;
+		output.highLum = 0.0f;
 		return output;
 	}
 	//	光の向かうベクトル（現在は平行光線）
@@ -44,7 +45,7 @@ PixelOutput BasicPS(Output input)
 
 
 	//	ディフューズ輝度計算
-	float diffuseB = saturate(dot(-light, input.normal));
+	float diffuseB = saturate(dot(-light, input.normal.xyz));
 	float4 toonDiff = toon.Sample(smpToon, float2(0, 1.0 - diffuseB));
 
 	//	光の反射ベクトル
@@ -68,7 +69,7 @@ PixelOutput BasicPS(Output input)
 		* sphColor									//	スフィアマップ（乗算）
 		+ saturate(spaColor * texColor						//	スフィアマップ（加算）
 			+ float4(specularB * specular.rgb, 1))		//	スペキュラー
-		, float4(ambient * texColor * sphColor, 1)	//	アンビエント
+		, float4(ambient.rgb * texColor.rgb * sphColor.rgb, 1)	//	アンビエント
 		+ spaColor
 	)
 		;
@@ -79,7 +80,7 @@ PixelOutput BasicPS(Output input)
 	output.normal.rgb = float3((input.normal.xyz + 1.0f) / 2.0f);
 	output.normal.a = 1;
 	//	高輝度結果
-	float y = dot(float3(0.299f, 0.587f, 0.114f), output.col);
+	float y = dot(float3(0.299f, 0.587f, 0.114f), output.col.rgb);
 	output.highLum = y > 0.99f ? output.col : 0.0f;
 	output.highLum.a = 1;
 	return output;

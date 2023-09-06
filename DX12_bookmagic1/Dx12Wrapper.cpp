@@ -8,9 +8,11 @@
 using namespace Microsoft::WRL;
 using namespace DirectX;
 
-//	定数定義
-constexpr float shadow_difinition = 40.0f;	//	ライトデプスの縦横サイズ
-constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
+namespace//	定数定義
+{
+	constexpr float shadow_difinition = 40.0f;	//	ライトデプスの縦横サイズ
+	constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
+}
 
 //	コンストラクタ
 Dx12Wrapper::Dx12Wrapper() :
@@ -350,8 +352,10 @@ void Dx12Wrapper::CreateViewProjectionView(void)
 	//	ヒーププロパティー設定
 	CD3DX12_HEAP_PROPERTIES heapprop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
 	//	シーンバッファの設定
-	UINT64 BufferSize = (sizeof(SceneMatrix) + 0xff) & ~0xff;	//	256アライメントにそろえたサイズ
-	CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(BufferSize);
+	UINT64 u_64BufferSize = (sizeof(SceneMatrix) + 0xff) & ~0xff;	//	256アライメントにそろえたサイズ
+	UINT BufferSize = (sizeof(SceneMatrix) + 0xff) & ~0xff;	//	256アライメントにそろえたサイズ
+
+	CD3DX12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(u_64BufferSize);
 	//	シーンバッファの作成
 	result = _dev->CreateCommittedResource(
 		&heapprop,

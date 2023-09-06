@@ -343,7 +343,7 @@ void PMDRenderer::CreateGraphicPipeline(void)
 	gpipeline.PS.pShaderBytecode = nullptr;						//	ピクセルシェーダーなし
 	gpipeline.PS.BytecodeLength = 0;
 	//	ターゲットフォーマットの初期化
-	for (int nTarget = 0; nTarget < gpipeline.NumRenderTargets; nTarget++)
+	for (unsigned int nTarget = 0; nTarget < gpipeline.NumRenderTargets; nTarget++)
 	{
 		gpipeline.RTVFormats[nTarget] = DXGI_FORMAT_UNKNOWN;
 	}

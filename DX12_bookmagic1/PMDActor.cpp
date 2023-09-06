@@ -379,7 +379,7 @@ void PMDActor::SolveCCDIK(const PMDIK& ik)
 		//	角度制限に引っ掛からないように曲げていく
 
 		//	末端の一つ前～ルートボーンまで
-		for (int bidx = 0; bidx < positions.size(); ++bidx)
+		for (unsigned int bidx = 0; bidx < positions.size(); ++bidx)
 		{
 			const auto& pos = positions[bidx];
 			auto vecToEnd = XMVectorSubtract(endPos, pos);				//	対象ノードから末端ノードまでのベクトル
@@ -1068,7 +1068,7 @@ void PMDActor::LoadPMD(const char* modelpath)
 	_boneNodeAddressArray.resize(pmdBone.size());
 	_kneeIdxes.clear();
 	//	ボーンノードマップを作成
-	for (int idx = 0; idx < pmdBone.size(); ++idx)
+	for (unsigned int idx = 0; idx < pmdBone.size(); ++idx)
 	{
 		auto& pb = pmdBone[idx];
 		boneNames[idx] = pb.boneName;
@@ -1282,7 +1282,7 @@ void PMDActor::LoadVMD(const char* vmdpath)
 			uint32_t ikBoneCount = 0;
 			fread(&ikBoneCount, sizeof(ikBoneCount), 1, fp);
 			//	ループしつつ名前とON/OFF情報を取得
-			for (int i = 0; i < ikBoneCount; ++i)
+			for (unsigned int i = 0; i < ikBoneCount; ++i)
 			{
 				//	ボーン名取得
 				char ikBoneName[20];

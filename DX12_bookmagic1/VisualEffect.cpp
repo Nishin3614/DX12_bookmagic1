@@ -9,6 +9,7 @@
 #include <d3dcompiler.h>
 #pragma comment(lib,"d3dcompiler.lib")
 
+//	外部ファイルからアクセスできなくするため、無名名前空間で定義
 namespace//列挙型用
 {
 	//	オリジン用レンダーターゲットビュー種類
@@ -53,6 +54,9 @@ namespace//列挙型用
 
 		MAX
 	};
+	//	定数定義
+	constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
+	constexpr float NONE_CLSCLR[4] = { 0.0f,0.0f,0.0f,1.0f };	//	合成するレンダーターゲットのクリアカラー
 
 }
 
@@ -60,9 +64,6 @@ namespace//列挙型用
 using namespace Microsoft::WRL;
 using namespace DirectX;
 
-//	定数定義
-constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
-constexpr float NONE_CLSCLR[4] = { 0.0f,0.0f,0.0f,1.0f };	//	合成するレンダーターゲットのクリアカラー
 
 //	コンストラクタ
 VisualEffect::VisualEffect(Dx12Wrapper * pWrap) :
