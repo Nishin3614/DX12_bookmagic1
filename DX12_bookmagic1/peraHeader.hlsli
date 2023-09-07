@@ -6,8 +6,9 @@ Texture2D<float4> shrinkTex	: register(t4);			//	縮小通常
 Texture2D<float4> effectTex : register(t5);	//	ポストエフェクトテクスチャー
 
 //	深度値検証用
-Texture2D<float4> depthTex : register(t6);	//	深度値テクスチャー
+Texture2D<float> depthTex : register(t6);	//	深度値テクスチャー
 Texture2D<float4> lightDepthTex : register(t7);	//	ライドデプステクスチャー
+Texture2D<float> ssaoTex : register(t8);		//	ssaoテクスチャー
 
 SamplerState smp : register(s0);			//	サンプラー
 

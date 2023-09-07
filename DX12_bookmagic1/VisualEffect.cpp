@@ -57,7 +57,7 @@ namespace//列挙型用
 	//	定数定義
 	constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
 	constexpr float NONE_CLSCLR[4] = { 0.0f,0.0f,0.0f,1.0f };	//	合成するレンダーターゲットのクリアカラー
-
+	constexpr float WHITE_CLSCLR[4] = { 1.0f,1.0f,1.0f,1.0f };	//	白のクリアカラー
 }
 
 //	名前空間
@@ -84,6 +84,9 @@ void VisualEffect::Init(void)
 	CreatePeraVertexBuff();
 	CreatePeraRootSignature();
 	CreatePeraGraphicPipeLine();
+	//	ssao作成
+	CreateAmbientOcculusionBuffer();
+	CreateAmbientOcculusionDescriptorHeap();
 }
 
 //	オリジンのレンダーターゲット作成
@@ -424,7 +427,7 @@ void VisualEffect::CreateBokeConstantBuff(void)
 void VisualEffect::CreatePeraRootSignature(void)
 {
 	//	レンジの設定
-	D3D12_DESCRIPTOR_RANGE ranges[5] = {};
+	D3D12_DESCRIPTOR_RANGE ranges[7] = {};
 	//	通常カラー、法線セット、高輝度、縮小高輝度、縮小通常
 	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	ranges[0].NumDescriptors = 5;	//	t0,t1,t2,t3,t4
@@ -440,6 +443,13 @@ void VisualEffect::CreatePeraRootSignature(void)
 	//	ライトデプステクスチャ用
 	ranges[4].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	ranges[4].NumDescriptors = 1;	//	t7
+	//	SSAOテクスチャ用
+	ranges[5].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[5].NumDescriptors = 1;
+
+	//	シーン情報定数バッファセット
+	ranges[6].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	ranges[6].NumDescriptors = 1;	//	b1
 
 	//	レギスター設定
 	UINT nSRVRegister = 0;
@@ -462,7 +472,7 @@ void VisualEffect::CreatePeraRootSignature(void)
 	}
 
 	//	ルートパラメータの設定
-	D3D12_ROOT_PARAMETER rp[5] = {};
+	D3D12_ROOT_PARAMETER rp[7] = {};
 	//	テクスチャーバッファセット
 	rp[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
@@ -488,6 +498,17 @@ void VisualEffect::CreatePeraRootSignature(void)
 	rp[4].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[4].DescriptorTable.pDescriptorRanges = &ranges[4];
 	rp[4].DescriptorTable.NumDescriptorRanges = 1;
+	//	SSAOテクスチャ用
+	rp[5].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rp[5].DescriptorTable.pDescriptorRanges = &ranges[5];
+	rp[5].DescriptorTable.NumDescriptorRanges = 1;
+
+	//	シーン情報定数バッファセット
+	rp[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rp[6].DescriptorTable.pDescriptorRanges = &ranges[6];
+	rp[6].DescriptorTable.NumDescriptorRanges = 1;
 
 
 	//	サンプラー設定
@@ -496,7 +517,7 @@ void VisualEffect::CreatePeraRootSignature(void)
 	//	ルートシグネイチャ設定
 	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
 	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
-	rsDesc.NumParameters = 5;
+	rsDesc.NumParameters = 7;
 	rsDesc.pParameters = rp;
 	rsDesc.NumStaticSamplers = 1;
 	rsDesc.pStaticSamplers = &sampler;
@@ -685,6 +706,31 @@ void VisualEffect::CreatePeraGraphicPipeLine(void)
 		return;
 	}
 
+	//	SSAO用のパイプライン作成
+	result = D3DCompileFromFile(
+		L"ssaoPixel.hlsl", nullptr,
+		D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"ps", "ps_5_0",
+		D3DCOMPILE_DEBUG | D3DCOMPILE_SKIP_OPTIMIZATION,
+		0,
+		ps.ReleaseAndGetAddressOf(),
+		errBlob.ReleaseAndGetAddressOf()
+	);
+	Helper::DebugShaderError(result, errBlob.Get());
+	gpsDesc.PS = CD3DX12_SHADER_BYTECODE(ps.Get());
+	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
+	gpsDesc.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
+	gpsDesc.NumRenderTargets = 1;
+	gpsDesc.BlendState.RenderTarget[0].BlendEnable = false;	//	formatがR32_FLOATのため、a値が0.0fでブレンドされてしまうためfalseにする
+	result = dev->CreateGraphicsPipelineState(
+		&gpsDesc,
+		IID_PPV_ARGS(_aoPipeline.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("ao用グラフィックパイプライン作成失敗\n");
+		return;
+	}
 }
 
 //	エフェクト用のバッファとビュー作成
@@ -728,6 +774,98 @@ bool VisualEffect::CreateEffectBufferAndView(void)
 
 
 	return false;
+}
+
+//	アンビエントオクルージョンバッファの作成
+bool VisualEffect::CreateAmbientOcculusionBuffer(void)
+{
+	//	バッファ作成	//
+	auto dev = _pWrap->GetDevice();
+	auto resDesc = _pWrap->GetBackDesc();
+	resDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	D3D12_CLEAR_VALUE clearValue = {};
+	clearValue.Color[0] = clearValue.Color[1]
+		= clearValue.Color[2]
+		= clearValue.Color[3]
+		= 1.0f;
+	clearValue.Format = resDesc.Format;
+	auto result = dev->CreateCommittedResource(
+		&heapProp,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		&clearValue,
+		IID_PPV_ARGS(_aoBuffer.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("アンビエントオクルージョンバッファの作成失敗\n");
+		assert(0);
+		return false;
+	}
+	return true;
+}
+
+//	アンビエントオクルージョンディスクリプタヒープ作成
+bool VisualEffect::CreateAmbientOcculusionDescriptorHeap(void)
+{
+	auto dev = _pWrap->GetDevice();
+
+	//	RTV用ヒープ作成
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	desc.NodeMask = 0;
+	desc.NumDescriptors = 1;
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	auto result = dev->CreateDescriptorHeap(
+		&desc,
+		IID_PPV_ARGS(_aoRTVDH.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("AOのRTV用ディスクリプターヒープの作成失敗\n");
+		assert(0);
+		return false;
+	}
+	//	RTV作成
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	dev->CreateRenderTargetView(
+		_aoBuffer.Get(),
+		&rtvDesc,
+		_aoRTVDH->GetCPUDescriptorHandleForHeapStart()
+	);
+
+	//	SRV用ヒープ作成
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	desc.NodeMask = 0;
+	desc.NumDescriptors = 1;
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	result = dev->CreateDescriptorHeap(
+		&desc,
+		IID_PPV_ARGS(_aoSRVDH.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("AOのSRV用ディスクリプターヒープの作成失敗\n");
+		assert(0);
+		return false;
+	}
+
+	//	SRV作成
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Texture2D.MipLevels = 1;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	dev->CreateShaderResourceView(
+		_aoBuffer.Get(),
+		&srvDesc,
+		_aoSRVDH->GetCPUDescriptorHandleForHeapStart()
+	);
+	return true;
 }
 
 //	レンダーターゲットをセットする処理
@@ -914,6 +1052,13 @@ void VisualEffect::EndDraw(void)
 		2,
 		_effectSRVHeap->GetGPUDescriptorHandleForHeapStart());
 
+	//	SSAOテクスチャとヒープを関連付ける
+	cmdList->SetDescriptorHeaps(1, _aoSRVDH.GetAddressOf());
+	cmdList->SetGraphicsRootDescriptorTable(
+		5,
+		_aoSRVDH->GetGPUDescriptorHandleForHeapStart()
+	);
+
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);						//	ペラポリゴン用の頂点バッファビューセット
 	cmdList->DrawInstanced(4, 1, 0, 0);
@@ -970,10 +1115,10 @@ void VisualEffect::DrawShrinkTextureForBlur(void)
 		incSize * static_cast<int>(E_ORIGIN_SRV::COL));
 	cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::COL), srvHandle);
 	//	高輝度テクスチャーセット
-	srvHandle.InitOffsetted(
-		srvH,
-		incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM));
-	cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::BLOOM), srvHandle);
+	//srvHandle.InitOffsetted(
+	//	srvH,
+	//	incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM));
+	//cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::BLOOM), srvHandle);
 
 	//	縮小バッファの初期サイズ設定
 	//		原寸サイズの半分のサイズに初期化している
@@ -1021,4 +1166,79 @@ void VisualEffect::DrawShrinkTextureForBlur(void)
 		_dofBuffer.Get(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+}
+
+//	アンビエントオクルージョンによる描画
+void VisualEffect::DrawAmbientOcculusion(void)
+{
+	//	アンビエントオクルージョン用描画前バリア指定
+	_pWrap->SetBarrier(
+		_aoBuffer.Get(),
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_RENDER_TARGET);
+
+	//	アンビエントオクルージョン用RTVをセット
+	auto cmdList = _pWrap->GetCmdList();
+	auto rtvBaseH = _aoRTVDH->GetCPUDescriptorHandleForHeapStart();
+	cmdList->OMSetRenderTargets(1, &rtvBaseH, false, nullptr);
+
+	//	クリアカラー	
+	cmdList->ClearRenderTargetView(rtvBaseH, WHITE_CLSCLR, 0, nullptr);
+
+	//	ビューポート・シザー矩形セット
+	auto& WinApp = Win32Application::Instance();
+	auto size = WinApp.GetWindowSize();
+	D3D12_VIEWPORT vp =
+		CD3DX12_VIEWPORT(0.0f, 0.0f, size.cx, size.cy);
+	cmdList->RSSetViewports(1, &vp);//ビューポート
+	CD3DX12_RECT rc(0, 0, size.cx, size.cy);
+	cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
+
+	//	ルートシグネイチャ、pipelineのセット
+	cmdList->SetGraphicsRootSignature(_prPoriRS.Get());					//	ペラポリゴン用のルートシグネイチャセット
+	cmdList->SetPipelineState(_aoPipeline.Get());						//	ssaopipeline用のパイプラインセット
+
+	//	頂点バッファビューのセット
+	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+	cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);						//	ペラポリゴン用の頂点バッファビューセット
+
+	//	法線テクスチャのため
+	cmdList->SetDescriptorHeaps(1, _originSRVHeap.GetAddressOf());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE handle;
+	auto baseH = _originSRVHeap->GetGPUDescriptorHandleForHeapStart();
+	auto dev = _pWrap->GetDevice();
+	int incSize = dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	handle.InitOffsetted(baseH, incSize * static_cast<int>(E_ORIGIN_SRV::COL));
+	cmdList->SetGraphicsRootDescriptorTable(0, handle);
+	//	深度用テクスチャのため
+	auto depthSrvHeap = _pWrap->GetDepthSRVDescHeap();
+	cmdList->SetDescriptorHeaps(1, depthSrvHeap.GetAddressOf());
+	handle = depthSrvHeap->GetGPUDescriptorHandleForHeapStart();
+	cmdList->SetGraphicsRootDescriptorTable(
+		3,
+		handle);
+	//	シーン情報の定数バッファ
+	auto sceneHeap = _pWrap->GetSceneCBVDescHeap();
+	cmdList->SetDescriptorHeaps(
+		1,					//	ディスクリプタヒープ数
+		sceneHeap.GetAddressOf()		//	座標変換用ディスクリプタヒープ
+	);
+	//	ルートパラメータとディスクリプタヒープの関連付け
+	auto heapHandle = sceneHeap->GetGPUDescriptorHandleForHeapStart();
+	//	定数バッファ0ビュー用の指定
+	cmdList->SetGraphicsRootDescriptorTable(
+		6,			//	ルートパラメータインデックス
+		heapHandle	//	ヒープアドレス
+	);
+
+	//	描画
+	cmdList->DrawInstanced(4, 1, 0, 0);
+
+
+	//	アンビエントオクルージョン用描画後バリア指定
+	_pWrap->SetBarrier(
+		_aoBuffer.Get(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+
 }

@@ -75,7 +75,7 @@ PixelOutput BasicPS(Output input)
 		;
 
 	//	通常レンダリング結果（カラー）
-	output.col = float4(col.rgb * shadowWeight, col.a);
+	output.col = float4(col.rgb  * shadowWeight, col.a);
 	//	法線結果
 	output.normal.rgb = float3((input.normal.xyz + 1.0f) / 2.0f);
 	output.normal.a = 1;

@@ -37,6 +37,9 @@ public:
 	//	縮小バッファぼかし描画処理
 	void DrawShrinkTextureForBlur(void);
 
+	//	アンビエントオクルージョンによる描画
+	void DrawAmbientOcculusion(void);
+
 private:
 
 	//	関数	//
@@ -57,6 +60,11 @@ private:
 	void CreatePeraGraphicPipeLine(void);
 	//	エフェクト用のバッファとビュー作成
 	bool CreateEffectBufferAndView(void);
+
+	//	アンビエントオクルージョンバッファの作成
+	bool CreateAmbientOcculusionBuffer(void);
+	//	アンビエントオクルージョンディスクリプタヒープ作成
+	bool CreateAmbientOcculusionDescriptorHeap(void);
 
 	//	変数	//
 	// DX12の基礎情報
@@ -89,4 +97,10 @@ private:
 
 	//	被写界深度用バッファ
 	ComPtr<ID3D12Resource> _dofBuffer;	//	被写界深度用ぼかしバッファ
+
+	//	アンビエントオクルージョン用
+	ComPtr<ID3D12Resource> _aoBuffer;
+	ComPtr<ID3D12PipelineState> _aoPipeline;
+	ComPtr<ID3D12DescriptorHeap> _aoRTVDH;
+	ComPtr<ID3D12DescriptorHeap> _aoSRVDH;
 };

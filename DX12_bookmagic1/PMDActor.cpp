@@ -115,7 +115,7 @@ void PMDActor::Draw(void)
 	);
 	for (auto& m : _materials)
 	{
-		//	定数バッファ0ビュー用の指定
+		//	マテリアル、テクスチャービュー用の指定
 		_pDxWrap->GetCmdList()->SetGraphicsRootDescriptorTable(
 			2,			//	ルートパラメータインデックス
 			materialH	//	ヒープアドレス

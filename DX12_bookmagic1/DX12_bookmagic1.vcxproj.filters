@@ -79,12 +79,18 @@
     <FxCompile Include="peraPixel.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
+    <FxCompile Include="ssaoPixel.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="BasicShaderHeader.hlsli">
       <Filter>シェーダーファイル</Filter>
     </None>
     <None Include="peraHeader.hlsli">
+      <Filter>シェーダーファイル</Filter>
+    </None>
+    <None Include="ssaoHeader.hlsli">
       <Filter>シェーダーファイル</Filter>
     </None>
   </ItemGroup>

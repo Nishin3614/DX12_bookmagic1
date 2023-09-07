@@ -56,6 +56,9 @@ void DXApplication::OnRender(void)
 	//	モデル描画
 	ModelDraw();
 
+	//	アンビエントオクルージョン描画
+	_pVFX->DrawAmbientOcculusion();
+
 	//	縮小バッファのレンダーターゲットの描画
 	_pVFX->DrawShrinkTextureForBlur();
 

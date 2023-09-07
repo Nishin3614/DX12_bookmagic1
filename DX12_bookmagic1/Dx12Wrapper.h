@@ -31,6 +31,7 @@ public:
 	{
 		DirectX::XMMATRIX view;		//	ビュー行列
 		DirectX::XMMATRIX proj;		//	プロジェクション行列
+		DirectX::XMMATRIX invproj;	//	逆プロジェクション行列
 		DirectX::XMMATRIX lightCamera;	//	ライトから見たビュー
 		DirectX::XMMATRIX shadow;	//	影
 		DirectX::XMFLOAT3 eye;		//	視点座標
@@ -70,6 +71,8 @@ public:
 	ComPtr < ID3D12DescriptorHeap> GetDsvDescHeap(void) { return _dsvHeap; }
 	//	深度バッファSRV用のディスクリプタヒープ取得
 	ComPtr < ID3D12DescriptorHeap> GetDepthSRVDescHeap(void) { return _depthSRVHeap; }
+	//	シーンバッファCBV用のディスクリプタヒープ取得
+	ComPtr<ID3D12DescriptorHeap> GetSceneCBVDescHeap(void) { return _ScenevHeap; }
 	//	バックバッファのディスク情報取得
 	D3D12_RESOURCE_DESC GetBackDesc(void) { return _backBuffers[0]->GetDesc(); }
 	//	ディスクリプタヒープのディスク情報取得

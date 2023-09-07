@@ -395,6 +395,11 @@ void Dx12Wrapper::CreateViewProjectionView(void)
 		1.0f,
 		100.0f
 	);
+	//	逆プロジェクション行列設定
+	DirectX::XMVECTOR det;
+	_pMapSceneMtx->invproj = DirectX::XMMatrixInverse(
+		&det,				//	逆行列が取得できない際「0」が入る
+		_pMapSceneMtx->proj);
 
 	//	ライトビュープロジェクション
 	XMVECTOR lightPos = targetPos + XMVector3Normalize(-XMLoadFloat3(&_parallelLightVec))

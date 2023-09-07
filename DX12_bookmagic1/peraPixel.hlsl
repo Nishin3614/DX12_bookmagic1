@@ -291,7 +291,7 @@ float4 Dof(Output input)
 
 	//	真ん中を基準とした深度値の差
 	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f))
-		- depthTex.Sample(smp, input.uv)).r;
+		- depthTex.Sample(smp, input.uv));
 	depthDiff = pow(depthDiff, 0.5f);	//	深度値の近い値でも変化が出やすいようにする
 	float2 uvSize = float2(1.0f, 0.5f);
 	float2 uvOfst = float2(0, 0);
@@ -338,6 +338,15 @@ float4 Dof(Output input)
 	return lerp(retColors[0], retColors[1], t);
 }
 
+//	SSAO処理
+float4 SSAO(Output input)
+{
+	//	SSAO処理	
+	float4 col = Normal(input);
+	float ssao = ssaoTex.Sample(smp, input.uv);
+	return col * ssao;
+}
+
 //	ペラポリゴン用のピクセルシェーダー	//
 float4 ps(Output input) : SV_Target
 {
@@ -345,16 +354,15 @@ float4 ps(Output input) : SV_Target
 	//	深度出力
 	if (input.uv.x < 0.2f && input.uv.y < 0.2f)
 	{
-		float dep = depthTex.Sample(smp, input.uv * 5).r;
+		float dep = depthTex.Sample(smp, input.uv * 5);
 		dep = 1.0f - pow(dep, 20);
 		return float4(dep, dep, dep, 1.0f);
 	}
 	//	ライトからの深度出力
 	else if (input.uv.x < 0.2f && input.uv.y < 0.4f)
 	{
-		//float lightdep = lightDepthTex.Sample(smp, (input.uv - float2(0.0f,0.2f)) * 5);
-		//lightdep = 1.0f - lightdep;
-		//return float4(lightdep, lightdep, lightdep, 1.0f);
+		//float ssao = ssaoTex.Sample(smp, (input.uv - float2(0.0f,0.2f)) * 5);
+		//return float4(ssao, ssao, ssao, 1.0f);
 	}
 	//	法線出力
 	else if (input.uv.x < 0.2f && input.uv.y < 0.6f)
@@ -371,15 +379,16 @@ float4 ps(Output input) : SV_Target
 	{
 		return shrinkHightLumTex.Sample(smp, (input.uv - float2(0, 0.8f)) * 5);
 	}
+	float ssao = ssaoTex.Sample(smp, input.uv);
+
+	//	SSAO処理	
+	return SSAO(input);
 	//	被写界深度ぼかし処理
 	return Dof(input);
 	//	ブルーム描画
 	return Bloom(input);
 	//	モノクロ化
 	return GaussianBlur(input);
-
-
-	//	ライトデプス検証用
 }
 
 //	ぼかしのピクセルシェーダー	//

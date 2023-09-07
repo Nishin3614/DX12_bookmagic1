@@ -25,7 +25,8 @@ SamplerComparisonState shadowSmp : register(s2);	//	2番：比較結果を取得する
 cbuffer SceneMatrix : register(b0)		//	0番スロットに設定された定数バッファ0
 {
 	matrix view;	//	ビュー行列
-	matrix proj;	//	ビュープロジェクション行列
+	matrix proj;	//	プロジェクション行列
+	matrix invproj;	//	逆プロジェクション行列
 	matrix lightCamera;	//	ライトビュープロジェクション
 	matrix shadow;	//	影
 	float3 eye;		//	視点座標
