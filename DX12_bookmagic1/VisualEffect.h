@@ -36,6 +36,10 @@ public:
 	void ProceDraw(void);
 	//	縮小バッファぼかし描画処理
 	void DrawShrinkTextureForBlur(void);
+	//	シャドウマップ描画
+	void ShadowDraw(void);
+	//	深度用SRVセット
+	void DepthSRVSet(void);
 
 	//	アンビエントオクルージョンによる描画
 	void DrawAmbientOcculusion(void);
@@ -60,6 +64,8 @@ private:
 	void CreatePeraGraphicPipeLine(void);
 	//	エフェクト用のバッファとビュー作成
 	bool CreateEffectBufferAndView(void);
+	//	深度バッファの作成
+	void CreateDepthView(void);
 
 	//	アンビエントオクルージョンバッファの作成
 	bool CreateAmbientOcculusionBuffer(void);
@@ -103,4 +109,10 @@ private:
 	ComPtr<ID3D12PipelineState> _aoPipeline;
 	ComPtr<ID3D12DescriptorHeap> _aoRTVDH;
 	ComPtr<ID3D12DescriptorHeap> _aoSRVDH;
+
+	//	深度用バッファ
+	ComPtr < ID3D12DescriptorHeap> _dsvHeap = nullptr;			//	深度バッファ用のディスクリプタヒープ
+	ComPtr < ID3D12Resource> _depthBuffer = nullptr;			//	深度バッファ
+	ComPtr<ID3D12Resource> _lightDepthBuffer = nullptr;
+	ComPtr<ID3D12DescriptorHeap> _depthSRVHeap = nullptr;		//	深度値テクスチャー用ヒープ
 };

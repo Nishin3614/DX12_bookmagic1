@@ -67,10 +67,6 @@ public:
 	ComPtr<ID3D12Device> GetDevice(void) { return _dev; }
 	//	コマンドリストの取得
 	ComPtr<ID3D12GraphicsCommandList> GetCmdList(void) { return _cmdList; }
-	//	深度バッファ用のディスクリプタヒープ取得
-	ComPtr < ID3D12DescriptorHeap> GetDsvDescHeap(void) { return _dsvHeap; }
-	//	深度バッファSRV用のディスクリプタヒープ取得
-	ComPtr < ID3D12DescriptorHeap> GetDepthSRVDescHeap(void) { return _depthSRVHeap; }
 	//	シーンバッファCBV用のディスクリプタヒープ取得
 	ComPtr<ID3D12DescriptorHeap> GetSceneCBVDescHeap(void) { return _ScenevHeap; }
 	//	バックバッファのディスク情報取得
@@ -82,7 +78,6 @@ public:
 	//	各テクスチャ無バッファ取得
 	ComPtr<ID3D12Resource> GetNoneTexture(E_NONETEX nTex) { return _noneTexTable[static_cast<int>(nTex)]; }
 
-	void ShadowDraw(void);
 	//	シーンビューのセット命令
 	void CommandSet_SceneView(void);
 
@@ -98,8 +93,6 @@ private:
 	void CreateCommand(void);
 	//	スワップチェインの作成
 	void CreateSwapchain(HWND hwnd);
-	//	深度バッファの作成
-	void CreateDepthView(void);
 	//	ビュー・プロジェクション行列バッファの作成
 	void CreateViewProjectionView(void);
 
@@ -131,10 +124,4 @@ private:
 	//	テクスチャーバッファのターブルなど	//
 	std::map<std::string, ComPtr<ID3D12Resource>> _resourceTable;	//	ファイル名パスとリソースのマップテーブル
 	ComPtr < ID3D12Resource> _noneTexTable[3];				//	ファイルなしテクスチャバッファ
-
-	//	深度用バッファ
-	ComPtr < ID3D12DescriptorHeap> _dsvHeap = nullptr;			//	深度バッファ用のディスクリプタヒープ
-	ComPtr < ID3D12Resource> _depthBuffer = nullptr;			//	深度バッファ
-	ComPtr<ID3D12Resource> _lightDepthBuffer;
-	ComPtr<ID3D12DescriptorHeap> _depthSRVHeap = nullptr;		//	深度値テクスチャー用ヒープ
 };

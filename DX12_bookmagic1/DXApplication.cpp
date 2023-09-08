@@ -77,7 +77,7 @@ void DXApplication::OnRender(void)
 void DXApplication::ShadowMapDraw(void)
 {
 	_pPmdRender->PreShadowDraw();
-	_pDxWrap->ShadowDraw();
+	_pVFX->ShadowDraw();
 	_pPmdAct->ShadowMapDraw();
 	_pPmdAct2->ShadowMapDraw();
 }
@@ -91,6 +91,7 @@ void DXApplication::ModelDraw(void)
 	_pPmdRender->Draw();
 	//	シーンビューの描画セット
 	_pDxWrap->CommandSet_SceneView();
+	_pVFX->DepthSRVSet();
 	//	PMDモデルの描画処理
 	_pPmdAct->Draw();
 	_pPmdAct2->Draw();

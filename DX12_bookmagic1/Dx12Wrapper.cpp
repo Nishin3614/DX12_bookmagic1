@@ -56,9 +56,6 @@ void Dx12Wrapper::Init(HWND hwnd)
 		IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf())
 	);
 
-	//	深度バッファの作成
-	CreateDepthView();
-
 	//	シーンバッファの作成
 	CreateViewProjectionView();
 	
@@ -220,119 +217,6 @@ void Dx12Wrapper::CreateSwapchain(HWND hwnd)
 		//	ポインター移動
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	}
-}
-
-//	深度バッファの作成
-void Dx12Wrapper::CreateDepthView(void)
-{
-	//	深度バッファの設定
-	CD3DX12_RESOURCE_DESC depthResDesc = CD3DX12_RESOURCE_DESC::Tex2D(
-		//DXGI_FORMAT_D32_FLOAT,					//	深度値書き込み用フォーマット
-		DXGI_FORMAT_R32_TYPELESS,		//	型レス（ビュー側で自由に型を決められる）
-		_windowSize.cx,							//	レンダーターゲットと同じ
-		_windowSize.cy,							//	レンダーターゲットと同じ
-		1, 0, 1, 0,
-		D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL	//	デプスステンシルとして使用
-	);
-	//	深度値用ヒーププロパティ
-	CD3DX12_HEAP_PROPERTIES depthHeapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	//	クリアバリューの設定
-	D3D12_CLEAR_VALUE depthClearValue = {};
-	depthClearValue.DepthStencil.Depth = 1.0f;	//	深さ1.0f（最大値）でクリア
-	depthClearValue.Format = DXGI_FORMAT_D32_FLOAT;	//	32ビットfloat値としてクリア
-	//	深度バッファ生成
-	auto result = _dev->CreateCommittedResource(
-		&depthHeapProp,						//	ヒープ設定
-		D3D12_HEAP_FLAG_NONE,				//	ヒープフラグ
-		&depthResDesc,						//	深度バッファの設定
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,	//	深度値の書き込みに使用
-		&depthClearValue,					//	クリアバリュー
-		IID_PPV_ARGS(_depthBuffer.ReleaseAndGetAddressOf())			//	バッファ
-	);
-	if (FAILED(result))
-	{
-		Helper::DebugOutputFormatString("深度バッファ作成失敗\n");
-		return;
-	}
-
-	//	シャドウマップ用深度バッファ
-	depthResDesc.Width = shadow_difinition;
-	depthResDesc.Height = shadow_difinition;
-	depthResDesc.Format = DXGI_FORMAT_R32_TYPELESS;
-	result = _dev->CreateCommittedResource(
-		&depthHeapProp,						//	ヒープ設定
-		D3D12_HEAP_FLAG_NONE,				//	ヒープフラグ
-		&depthResDesc,						//	深度バッファの設定
-		D3D12_RESOURCE_STATE_DEPTH_WRITE,	//	深度値の書き込みに使用
-		&depthClearValue,					//	クリアバリュー
-		IID_PPV_ARGS(_lightDepthBuffer.ReleaseAndGetAddressOf())
-	);
-	if (FAILED(result))
-	{
-		Helper::DebugOutputFormatString("シャドウマップ用深度バッファ作成失敗\n");
-		return;
-	}
-
-	//	深度バッファビューの作成	//
-	//	ディスクリプタヒープの設定
-	D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc = {};
-	dsvHeapDesc.NumDescriptors = 2;							//	ディスクリプタ数
-	dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;		//	デプスステンシルビューとして使用
-	//	深度のためのディスクリプタヒープ作成
-	result = _dev->CreateDescriptorHeap(&dsvHeapDesc, IID_PPV_ARGS(_dsvHeap.ReleaseAndGetAddressOf()));
-	//	深度バッファビューの設定
-	D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
-	dsvDesc.Format = DXGI_FORMAT_D32_FLOAT;					//	深度値に32ビット使用
-	dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;	//	2Dテクスチャ
-	dsvDesc.Flags = D3D12_DSV_FLAG_NONE;					//	フラグなし
-	auto handle = _dsvHeap->GetCPUDescriptorHandleForHeapStart();
-	//	ディスクリプタヒープ内に深度バッファビューを作成
-	_dev->CreateDepthStencilView(
-		_depthBuffer.Get(),
-		&dsvDesc,
-		handle
-	);
-	//	ライトデプス用の深度バッファビュー作成
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	_dev->CreateDepthStencilView(
-		_lightDepthBuffer.Get(),
-		&dsvDesc,
-		handle
-	);
-
-	//	深度値テクスチャービュー作成	//
-	//	深度のためのディスクリプタヒープ作成
-	D3D12_DESCRIPTOR_HEAP_DESC SRVheapDesc = {};
-	SRVheapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	SRVheapDesc.NodeMask = 0;
-	SRVheapDesc.NumDescriptors = 2;
-	SRVheapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	result = _dev->CreateDescriptorHeap(&SRVheapDesc, IID_PPV_ARGS(_depthSRVHeap.ReleaseAndGetAddressOf()));
-	if (FAILED(result))
-	{
-		Helper::DebugOutputFormatString("深度値テクスチャー用のディスクリプタヒープ作成失敗\n");
-		return;
-	}
-	//	通常デプス→テクスチャ用
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvResDesc  = {};
-	srvResDesc.Format = DXGI_FORMAT_R32_FLOAT;
-	srvResDesc.Texture2D.MipLevels = 1;
-	srvResDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvResDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;	//	2Dテクスチャ
-	handle = _depthSRVHeap->GetCPUDescriptorHandleForHeapStart();
-	_dev->CreateShaderResourceView(
-		_depthBuffer.Get(),
-		&srvResDesc,
-		handle
-	);
-	//	ライトデプス→テクスチャ用
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(
-		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	_dev->CreateShaderResourceView(
-		_lightDepthBuffer.Get(),
-		&srvResDesc,
-		handle
-	);
 }
 
 //	ビュープロジェクションバッファの作成
@@ -569,40 +453,6 @@ ComPtr < ID3D12Resource> Dx12Wrapper::CreateGrayGradationTexture(void)
 }
 
 /*	描画関連の処理	*/
-//	レンダーターゲットをセットする処理
-void Dx12Wrapper::ShadowDraw(void)
-{	
-	//	深度バッファ用ディスクリプタヒープハンドル取得
-	auto handle = _dsvHeap->GetCPUDescriptorHandleForHeapStart();
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	//	レンダーターゲットセット
-	_cmdList->OMSetRenderTargets(0, nullptr, false, &handle);
-	//	深度バッファビューをクリア
-	_cmdList->ClearDepthStencilView(handle,
-		D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-
-	//	座標変換用ディスクリプタヒープの指定
-	_cmdList->SetDescriptorHeaps(
-		1,					//	ディスクリプタヒープ数
-		_ScenevHeap.GetAddressOf()		//	座標変換用ディスクリプタヒープ
-	);
-
-	//	ルートパラメータとディスクリプタヒープの関連付け
-	auto heapHandle = _ScenevHeap->GetGPUDescriptorHandleForHeapStart();
-	//	定数バッファ0ビュー用の指定
-	_cmdList->SetGraphicsRootDescriptorTable(
-		0,			//	ルートパラメータインデックス
-		heapHandle	//	ヒープアドレス
-	);
-
-	D3D12_VIEWPORT vp = 
-		CD3DX12_VIEWPORT(0.0f, 0.0f, shadow_difinition, shadow_difinition);
-	_cmdList->RSSetViewports(1, &vp);//ビューポート
-
-	CD3DX12_RECT rc(0, 0, shadow_difinition, shadow_difinition);
-	_cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
-}
-
 //	バックバッファのクリア
 void Dx12Wrapper::Clear(void)
 {
@@ -683,12 +533,6 @@ void Dx12Wrapper::CommandSet_SceneView(void)
 		0,			//	ルートパラメータインデックス
 		heapHandle	//	ヒープアドレス
 	);
-
-	//	深度SRVをセット
-	_cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
-	auto handle = _depthSRVHeap->GetGPUDescriptorHandleForHeapStart();
-	handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	_cmdList->SetGraphicsRootDescriptorTable(3, handle);
 
 	D3D12_VIEWPORT vp =
 		CD3DX12_VIEWPORT(0.0f, 0.0f, _windowSize.cx, _windowSize.cy);
