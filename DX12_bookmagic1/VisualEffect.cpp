@@ -1,6 +1,8 @@
 //	インクルード
 #include "VisualEffect.h"
+#include "DXApplication.h"
 #include "Dx12Wrapper.h"
+#include "sceneInfo.h"
 #include <d3dx12.h>
 #include "Win32Application.h"
 #include "helper.h"
@@ -1043,6 +1045,17 @@ void VisualEffect::PreOriginDraw(void)
 	//	深度バッファビューをクリア
 	cmdList->ClearDepthStencilView(dsvHeapPointer,
 		D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	
+	//	描画箇所セット
+	auto& WinApp = Win32Application::Instance();
+	auto size = WinApp.GetWindowSize();
+	D3D12_VIEWPORT vp =
+		CD3DX12_VIEWPORT(0.0f, 0.0f, size.cx, size.cy);
+	cmdList->RSSetViewports(1, &vp);//ビューポート
+	
+	CD3DX12_RECT rc(0, 0, size.cx, size.cy);
+	cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
+
 }
 
 //	オリジンレンダーターゲットの描画終了
@@ -1235,11 +1248,6 @@ void VisualEffect::DrawShrinkTextureForBlur(void)
 		srvH,
 		incSize * static_cast<int>(E_ORIGIN_SRV::COL));
 	cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::COL), srvHandle);
-	//	高輝度テクスチャーセット
-	//srvHandle.InitOffsetted(
-	//	srvH,
-	//	incSize * static_cast<int>(E_ORIGIN_SRV::BLOOM));
-	//cmdList->SetGraphicsRootDescriptorTable(static_cast<int>(E_ORIGIN_SRV::BLOOM), srvHandle);
 
 	//	縮小バッファの初期サイズ設定
 	//		原寸サイズの半分のサイズに初期化している
@@ -1309,23 +1317,6 @@ void VisualEffect::ShadowDraw(void)
 
 	CD3DX12_RECT rc(0, 0, shadow_difinition, shadow_difinition);
 	cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
-
-	auto sceneHeap = _pWrap->GetSceneCBVDescHeap();
-
-	//	座標変換用ディスクリプタヒープの指定
-	cmdList->SetDescriptorHeaps(
-		1,					//	ディスクリプタヒープ数
-		sceneHeap.GetAddressOf()		//	座標変換用ディスクリプタヒープ
-	);
-
-	//	ルートパラメータとディスクリプタヒープの関連付け
-	auto heapHandle = sceneHeap->GetGPUDescriptorHandleForHeapStart();
-	//	定数バッファ0ビュー用の指定
-	cmdList->SetGraphicsRootDescriptorTable(
-		0,			//	ルートパラメータインデックス
-		heapHandle	//	ヒープアドレス
-	);
-
 }
 
 //	深度用SRVセット
@@ -1389,19 +1380,9 @@ void VisualEffect::DrawAmbientOcculusion(void)
 		3,
 		handle);
 	//	シーン情報の定数バッファ
-	auto sceneHeap = _pWrap->GetSceneCBVDescHeap();
-	cmdList->SetDescriptorHeaps(
-		1,					//	ディスクリプタヒープ数
-		sceneHeap.GetAddressOf()		//	座標変換用ディスクリプタヒープ
-	);
-	//	ルートパラメータとディスクリプタヒープの関連付け
-	auto heapHandle = sceneHeap->GetGPUDescriptorHandleForHeapStart();
-	//	定数バッファ0ビュー用の指定
-	cmdList->SetGraphicsRootDescriptorTable(
-		6,			//	ルートパラメータインデックス
-		heapHandle	//	ヒープアドレス
-	);
-
+	auto& pDX = DXApplication::Instance();
+	auto pSceneInfo = pDX.GetSceneInfo();
+	pSceneInfo->CommandSet_SceneView(6);
 	//	描画
 	cmdList->DrawInstanced(4, 1, 0, 0);
 

@@ -1,5 +1,6 @@
 //	インクルード
 #include "DXApplication.h"
+#include "sceneInfo.h"
 #include "Dx12Wrapper.h"
 #include "VisualEffect.h"
 #include "PMDActor.h"
@@ -17,6 +18,7 @@ DXApplication& DXApplication::Instance(void)
 //	コンストラクタ
 DXApplication::DXApplication() :
 	_pDxWrap(nullptr),
+	_pSceneInfo(nullptr),
 	_pVFX(nullptr),
 	_pPmdAct(nullptr),
 	_pPmdAct2(nullptr),
@@ -31,6 +33,9 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	_pDxWrap = new Dx12Wrapper;
 	_pDxWrap->Init(hwnd);
 
+	//	シーン情報の初期化処理
+	_pSceneInfo = new SceneInfo(_pDxWrap);
+	_pSceneInfo->Init();
 	//	ビジュアルエフェクトの初期化処理
 	_pVFX = new VisualEffect(_pDxWrap);
 	_pVFX->Init();
@@ -77,6 +82,7 @@ void DXApplication::OnRender(void)
 void DXApplication::ShadowMapDraw(void)
 {
 	_pPmdRender->PreShadowDraw();
+	_pSceneInfo->CommandSet_SceneView();
 	_pVFX->ShadowDraw();
 	_pPmdAct->ShadowMapDraw();
 	_pPmdAct2->ShadowMapDraw();
@@ -90,7 +96,7 @@ void DXApplication::ModelDraw(void)
 	//	PMDレンダラーにて、ルートシグネイチャなどをセット
 	_pPmdRender->Draw();
 	//	シーンビューの描画セット
-	_pDxWrap->CommandSet_SceneView();
+	_pSceneInfo->CommandSet_SceneView();
 	_pVFX->DepthSRVSet();
 	//	PMDモデルの描画処理
 	_pPmdAct->Draw();
@@ -106,6 +112,10 @@ void DXApplication::OnRelease(void)
 	//	DirectX周りの解放
 	delete _pDxWrap;
 	_pDxWrap = nullptr;
+
+	//	シーン情報の解放
+	delete _pSceneInfo;
+	_pSceneInfo = nullptr;
 
 	//	ビジュアルエフェクトの解放
 	delete _pVFX;

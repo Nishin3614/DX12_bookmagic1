@@ -26,17 +26,7 @@ public:
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
 
 	//	構造体	//
-	//	シェーダー側に渡すためお基本的な行列データ
-	struct SceneMatrix
-	{
-		DirectX::XMMATRIX view;		//	ビュー行列
-		DirectX::XMMATRIX proj;		//	プロジェクション行列
-		DirectX::XMMATRIX invproj;	//	逆プロジェクション行列
-		DirectX::XMMATRIX lightCamera;	//	ライトから見たビュー
-		DirectX::XMMATRIX shadow;	//	影
-		DirectX::XMFLOAT3 eye;		//	視点座標
-	};
-	
+
 	//	テクスチャー無の場合のテクスチャーバッファ種類
 	enum class E_NONETEX : int
 	{
@@ -67,8 +57,6 @@ public:
 	ComPtr<ID3D12Device> GetDevice(void) { return _dev; }
 	//	コマンドリストの取得
 	ComPtr<ID3D12GraphicsCommandList> GetCmdList(void) { return _cmdList; }
-	//	シーンバッファCBV用のディスクリプタヒープ取得
-	ComPtr<ID3D12DescriptorHeap> GetSceneCBVDescHeap(void) { return _ScenevHeap; }
 	//	バックバッファのディスク情報取得
 	D3D12_RESOURCE_DESC GetBackDesc(void) { return _backBuffers[0]->GetDesc(); }
 	//	ディスクリプタヒープのディスク情報取得
@@ -77,9 +65,6 @@ public:
 	ComPtr<ID3D12Resource> LoadTextureFromFile(std::string& texPath);
 	//	各テクスチャ無バッファ取得
 	ComPtr<ID3D12Resource> GetNoneTexture(E_NONETEX nTex) { return _noneTexTable[static_cast<int>(nTex)]; }
-
-	//	シーンビューのセット命令
-	void CommandSet_SceneView(void);
 
 private:
 
@@ -93,8 +78,6 @@ private:
 	void CreateCommand(void);
 	//	スワップチェインの作成
 	void CreateSwapchain(HWND hwnd);
-	//	ビュー・プロジェクション行列バッファの作成
-	void CreateViewProjectionView(void);
 
 	ComPtr < ID3D12Resource> CreateWhiteTexture(void);			//	白テクスチャーバッファ作成
 	ComPtr < ID3D12Resource> CreateBlackTexture(void);			//	黒テクスチャーバッファ作成
@@ -111,15 +94,6 @@ private:
 	std::vector< ID3D12Resource*> _backBuffers;			//	バックバッファ
 	ComPtr < ID3D12Fence> _fence = nullptr;						//	フェンス
 	UINT64 _fenceVal = 0;								//	フェイス値
-
-	ComPtr<ID3D12DescriptorHeap> _ScenevHeap = nullptr;	//	シーンディスクリプタ
-	ComPtr<ID3D12Resource> _SceneBuffer = nullptr;		//	シーンバッファ
-	SceneMatrix* _pMapSceneMtx;							//	シーン行列のマップ
-	DirectX::XMFLOAT3 _parallelLightVec;				//	平行ライトの向き
-	DirectX::XMFLOAT3 _eye;		//	視点
-	DirectX::XMFLOAT3 _target;	//	注視点
-	DirectX::XMFLOAT3 _up;		//	上ベクトル
-	SIZE _windowSize;			//	ウィンドウサイズ
 
 	//	テクスチャーバッファのターブルなど	//
 	std::map<std::string, ComPtr<ID3D12Resource>> _resourceTable;	//	ファイル名パスとリソースのマップテーブル

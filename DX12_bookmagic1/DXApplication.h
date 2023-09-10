@@ -7,6 +7,7 @@
 
 //	クラスの前方宣言
 class Dx12Wrapper;
+class SceneInfo;
 class VisualEffect;
 class PMDActor;
 class PMDRenderer;
@@ -31,6 +32,7 @@ public:
 
 	/*	取得関数	*/
 	Dx12Wrapper* GetWrapper(void) { return _pDxWrap; }
+	SceneInfo* GetSceneInfo(void) { return _pSceneInfo; }
 
 private:
 	//	関数	//
@@ -50,6 +52,7 @@ private:
 
 	//	変数	//
 	Dx12Wrapper* _pDxWrap;									//	DirectX周りのクラス
+	SceneInfo* _pSceneInfo;									//	シーン情報クラス
 	VisualEffect* _pVFX;										//	ビジュアルエフェクト
 	PMDActor* _pPmdAct;										//	PMDアクタークラス
 	PMDActor* _pPmdAct2;
