@@ -1327,7 +1327,7 @@ void VisualEffect::DepthSRVSet(void)
 	//	深度SRVをセット
 	cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	auto handle = _depthSRVHeap->GetGPUDescriptorHandleForHeapStart();
-	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	handle.ptr += dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	cmdList->SetGraphicsRootDescriptorTable(3, handle);
 }
 
