@@ -94,7 +94,11 @@ SIZE Win32Application::GetWindowSize(void)
 	return rec;
 }
 
+#include "imgui/imgui.h"
+//	Imguiのウィンドウプロシージャー外部参照
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
+//	ウィンドウプロシージャー
 LRESULT Win32Application::WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 {
 	//	ウィンドウが破棄されたら呼ばれる処理
@@ -103,5 +107,8 @@ LRESULT Win32Application::WindowProcedure(HWND hwnd, UINT msg, WPARAM wparam, LP
 		PostQuitMessage(0);	//	OSに対して「もうこのアプリは終わる」と伝える
 		return 0;
 	}
+
+	//	Imguiのウィンドウプロシージャ処理
+	ImGui_ImplWin32_WndProcHandler(hwnd,msg,wparam,lparam);
 	return DefWindowProc(hwnd, msg, wparam, lparam);	//	既定の処理を行う
 }

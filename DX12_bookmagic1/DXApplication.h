@@ -50,6 +50,11 @@ private:
 	//	モデル描画
 	void ModelDraw(void);
 
+	//	Imguiの初期化処理
+	void InitImgui(HWND hwnd);
+	//	Imguiの描画処理
+	void DrawImgui(void);
+
 	//	変数	//
 	Dx12Wrapper* _pDxWrap;									//	DirectX周りのクラス
 	SceneInfo* _pSceneInfo;									//	シーン情報クラス

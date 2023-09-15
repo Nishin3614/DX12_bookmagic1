@@ -6,6 +6,11 @@
 #include "PMDActor.h"
 #include "PMDRenderer.h"
 
+//	IMGUIファイル
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_win32.h"
+#include "imgui/imgui_impl_dx12.h"
+
 using namespace DirectX;
 
 //	インスタンスを取得
@@ -50,6 +55,9 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	//	PMDレンダラーの初期化処理
 	_pPmdRender = new PMDRenderer(_pDxWrap);
 	_pPmdRender->Init();
+
+	//	Imgui初期化処理
+	InitImgui(hwnd);
 }
 
 //	描画処理
@@ -74,6 +82,10 @@ void DXApplication::OnRender(void)
 	_pDxWrap->Clear();
 	//	描画
 	_pVFX->EndDraw();
+
+	//	Imgui描画
+	DrawImgui();
+
 	//	フリップ
 	_pDxWrap->Flip();
 }
@@ -103,6 +115,56 @@ void DXApplication::ModelDraw(void)
 	_pPmdAct2->Draw();
 	//	オリジンレンダーターゲットの描画終了
 	_pVFX->EndOriginDraw();
+}
+
+//	Imguiの初期化処理
+void DXApplication::InitImgui(HWND hwnd)
+{
+	//	コンテキストクリア
+	if (ImGui::CreateContext() == nullptr)
+	{
+		assert(0);
+		return;
+	}
+	
+	//	Windows用の初期化処理
+	bool bResult = ImGui_ImplWin32_Init(hwnd);
+	if (!bResult)
+	{
+		assert(0);
+		return;
+	}
+
+	//	DirectX12用の初期化処理
+	bResult = ImGui_ImplDX12_Init(
+		_pDxWrap->GetDevice().Get(),
+		3,
+		DXGI_FORMAT_R8G8B8A8_UNORM,
+		_pDxWrap->GetHeapForImgui().Get(),
+		_pDxWrap->GetHeapForImgui()->GetCPUDescriptorHandleForHeapStart(),
+		_pDxWrap->GetHeapForImgui()->GetGPUDescriptorHandleForHeapStart()
+	);
+}
+
+//	Imguiの描画
+void DXApplication::DrawImgui(void)
+{
+	//	描画処理前
+	ImGui_ImplDX12_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	//	ウィンドウ定義
+	ImGui::Begin("Rendering Test Menu");
+	ImGui::SetWindowSize(ImVec2(400, 500), ImGuiCond_::ImGuiCond_FirstUseEver);
+	ImGui::End();
+	//	描画処理
+	ImGui::Render();
+	_pDxWrap->GetCmdList()->SetDescriptorHeaps(
+		1, _pDxWrap->GetHeapForImgui().GetAddressOf()
+	);
+	ImGui_ImplDX12_RenderDrawData(
+		ImGui::GetDrawData(), _pDxWrap->GetCmdList().Get()
+	);
 }
 
 

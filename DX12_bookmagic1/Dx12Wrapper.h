@@ -65,6 +65,8 @@ public:
 	ComPtr<ID3D12Resource> LoadTextureFromFile(std::string& texPath);
 	//	各テクスチャ無バッファ取得
 	ComPtr<ID3D12Resource> GetNoneTexture(E_NONETEX nTex) { return _noneTexTable[static_cast<int>(nTex)]; }
+	//	Imguiのヒープ取得
+	ComPtr<ID3D12DescriptorHeap> GetHeapForImgui() { return _heapForImgui; }
 
 private:
 
@@ -78,6 +80,8 @@ private:
 	void CreateCommand(void);
 	//	スワップチェインの作成
 	void CreateSwapchain(HWND hwnd);
+	//	imgui
+	void CreateDescriptorHeapForImgui(void);
 
 	ComPtr < ID3D12Resource> CreateWhiteTexture(void);			//	白テクスチャーバッファ作成
 	ComPtr < ID3D12Resource> CreateBlackTexture(void);			//	黒テクスチャーバッファ作成
@@ -94,6 +98,9 @@ private:
 	std::vector< ID3D12Resource*> _backBuffers;			//	バックバッファ
 	ComPtr < ID3D12Fence> _fence = nullptr;						//	フェンス
 	UINT64 _fenceVal = 0;								//	フェイス値
+
+	//	imgui
+	ComPtr<ID3D12DescriptorHeap> _heapForImgui;	//	ヒープ保持用
 
 	//	テクスチャーバッファのターブルなど	//
 	std::map<std::string, ComPtr<ID3D12Resource>> _resourceTable;	//	ファイル名パスとリソースのマップテーブル

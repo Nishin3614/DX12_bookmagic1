@@ -47,6 +47,9 @@ void Dx12Wrapper::Init(HWND hwnd)
 		IID_PPV_ARGS(_fence.ReleaseAndGetAddressOf())
 	);
 
+	//	Imguiの作成
+	CreateDescriptorHeapForImgui();
+
 	//	テクスチャ無バッファテーブルを作成
 	_noneTexTable[static_cast<int>(E_NONETEX::WHITE)] = CreateWhiteTexture();
 	_noneTexTable[static_cast<int>(E_NONETEX::BLACK)] = CreateBlackTexture();
@@ -208,6 +211,25 @@ void Dx12Wrapper::CreateSwapchain(HWND hwnd)
 			handle);			//	どのハンドルから生成するか
 		//	ポインター移動
 		handle.ptr += _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	}
+}
+
+//	Imguiのディスクリプタヒープ作成
+void Dx12Wrapper::CreateDescriptorHeapForImgui(void)
+{
+	//	ディスクリプタヒープ作成
+	D3D12_DESCRIPTOR_HEAP_DESC desc = {};
+
+	desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	desc.NodeMask = 0;
+	desc.NumDescriptors = 1;
+	desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	auto result = _dev->CreateDescriptorHeap(
+		&desc, IID_PPV_ARGS(_heapForImgui.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("Imguiのディスクリプタヒープ作成失敗\n");
 	}
 }
 
