@@ -68,6 +68,10 @@ public:
 	//	Imguiのヒープ取得
 	ComPtr<ID3D12DescriptorHeap> GetHeapForImgui() { return _heapForImgui; }
 
+	//	背景色のゲッターセッター
+	float* GetBgCol(void) { return _bgColor; };
+	void SetBgCol(float bgCol[4]) { std::copy_n(bgCol, 4, std::begin(_bgColor)); }
+
 private:
 
 	//	関数	//
@@ -98,6 +102,7 @@ private:
 	std::vector< ID3D12Resource*> _backBuffers;			//	バックバッファ
 	ComPtr < ID3D12Fence> _fence = nullptr;						//	フェンス
 	UINT64 _fenceVal = 0;								//	フェイス値
+	float _bgColor[4] = { 0.5f,0.5f,0.5f,1.0f };		//	背景カラー
 
 	//	imgui
 	ComPtr<ID3D12DescriptorHeap> _heapForImgui;	//	ヒープ保持用

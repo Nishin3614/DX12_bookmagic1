@@ -54,6 +54,8 @@ private:
 	void InitImgui(HWND hwnd);
 	//	Imguiの描画処理
 	void DrawImgui(void);
+	//	Imguiのコントロール表示
+	void DrawControlImgui(void);
 
 	//	変数	//
 	Dx12Wrapper* _pDxWrap;									//	DirectX周りのクラス

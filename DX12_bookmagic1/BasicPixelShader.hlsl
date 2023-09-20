@@ -21,12 +21,15 @@ PixelOutput BasicPS(Output input)
 		shadowWeight = 0.75f;
 	}
 	*/
-	float depthFromLight = lightDepthTex.SampleCmp(
-		shadowSmp,					//	比較サンプラー
-		shadowUV,					//	uv
-		posFromLightVP.z - 0.005f	//	比較対象値
-	);
-	shadowWeight = lerp(0.8f, 1.0f, depthFromLight);	//	0.0になった際、0.5になる
+	if (bSelfShadow)
+	{
+		float depthFromLight = lightDepthTex.SampleCmp(
+			shadowSmp,					//	比較サンプラー
+			shadowUV,					//	uv
+			posFromLightVP.z - 0.005f	//	比較対象値
+		);
+		shadowWeight = lerp(0.8f, 1.0f, depthFromLight);	
+	}
 
 	//	影を描画する場合
 	if (input.instNo == 1)
@@ -38,7 +41,7 @@ PixelOutput BasicPS(Output input)
 		return output;
 	}
 	//	光の向かうベクトル（現在は平行光線）
-	float3 light = normalize(float3(1,-1,1));	//	右下奥に向かっていくベクトル
+	float3 light = normalize(lightVec);	//	右下奥に向かっていくベクトル
 
 	//	ライトのカラー
 	float3 lightColor = float3(1, 1, 1);

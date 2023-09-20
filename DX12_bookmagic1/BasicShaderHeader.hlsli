@@ -29,7 +29,9 @@ cbuffer SceneMatrix : register(b0)		//	0番スロットに設定された定数バッファ0
 	matrix invproj;	//	逆プロジェクション行列
 	matrix lightCamera;	//	ライトビュープロジェクション
 	matrix shadow;	//	影
+	float4 lightVec;	//	光源ベクトル
 	float3 eye;		//	視点座標
+	bool bSelfShadow;	//	シャドウマップフラグ
 }
 cbuffer Transform : register(b1)	//	1番スロットに設定された定数バッファ
 {

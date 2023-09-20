@@ -1,23 +1,23 @@
 #include "peraHeader.hlsli"
-//	通常描画
-float4 Normal(Output input)
-{
-	return tex.Sample(smp,input.uv);
-}
-
 //	モノクロ化処理
 float4 monokuro(float4 col)
 {
 	//	モノクロ化
 	float Y = dot(col.rgb, float3(0.299, 0.587, 0.114));
-	return float4(Y, Y, Y, col.a);
+	if (_MonochroR)
+	{
+		col.r = Y;
+	}
+	if (_MonochroG)
+	{
+		col.g = Y;
+	}
+	if (_MonochroB)
+	{
+		col.b = Y;
+	}
 
-}
-
-//	色の反転処理
-float4 Reverse(float4 col)
-{
-	return float4(1.0 - col.rgb, col.a);
+	return col;
 }
 
 //	色の階調を落とす処理
@@ -33,7 +33,7 @@ float4 Blur(Output input)
 {
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -45,15 +45,15 @@ float4 Blur(Output input)
 	float dy = 1.0f / h;
 	//	近傍テーブルの合計値
 	float4 ret = float4(0, 0, 0, 0);
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy));//	左上
-	ret += tex.Sample(smp, input.uv + float2(0, -2 * dy));		//	上
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy));	//	右上
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0));		//	左
-	ret += tex.Sample(smp, input.uv);							//	自分
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0));		//	右
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy));	//	左下
-	ret += tex.Sample(smp, input.uv + float2(0, 2 * dy));		//	下
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy));	//	右下
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, -2 * dy));//	左上
+	ret += _tex.Sample(_smp, input.uv + float2(0, -2 * dy));		//	上
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, -2 * dy));	//	右上
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 0));		//	左
+	ret += _tex.Sample(_smp, input.uv);							//	自分
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 0));		//	右
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 2 * dy));	//	左下
+	ret += _tex.Sample(_smp, input.uv + float2(0, 2 * dy));		//	下
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 2 * dy));	//	右下
 
 	//	画素の平均値を返す
 	return ret / 9.0f;
@@ -64,7 +64,7 @@ float4 Emboss(Output input)
 {
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -76,17 +76,17 @@ float4 Emboss(Output input)
 	float dy = 1.0f / h;
 	//	近傍テーブルの合計値
 	float4 ret = float4(0, 0, 0, 0);
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 2;//	左上
-	ret += tex.Sample(smp, input.uv + float2(0, -2 * dy));		//	上
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 0;	//	右上
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, -2 * dy)) * 2;//	左上
+	ret += _tex.Sample(_smp, input.uv + float2(0, -2 * dy));		//	上
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, -2 * dy)) * 0;	//	右上
 
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0));		//	左
-	ret += tex.Sample(smp, input.uv);							//	自分
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0)) * -1;		//	右
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 0));		//	左
+	ret += _tex.Sample(_smp, input.uv);							//	自分
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 0)) * -1;		//	右
 
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0;	//	左下
-	ret += tex.Sample(smp, input.uv + float2(0, 2 * dy)) * -1;		//	下
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * -2;	//	右下
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 2 * dy)) * 0;	//	左下
+	ret += _tex.Sample(_smp, input.uv + float2(0, 2 * dy)) * -1;		//	下
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 2 * dy)) * -2;	//	右下
 
 	//	画素の平均値を返す
 	return ret;
@@ -97,7 +97,7 @@ float4 Sharpness(Output input)
 {
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -109,17 +109,17 @@ float4 Sharpness(Output input)
 	float dy = 1.0f / h;
 	//	近傍テーブルの合計値
 	float4 ret = float4(0, 0, 0, 0);
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 0;//	左上
-	ret += tex.Sample(smp, input.uv + float2(0, -2 * dy)) * -1;		//	上
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 0;	//	右上
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, -2 * dy)) * 0;//	左上
+	ret += _tex.Sample(_smp, input.uv + float2(0, -2 * dy)) * -1;		//	上
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, -2 * dy)) * 0;	//	右上
 
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0)) * -1;		//	左
-	ret += tex.Sample(smp, input.uv) * 5;							//	自分
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0)) * -1;		//	右
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 0)) * -1;		//	左
+	ret += _tex.Sample(_smp, input.uv) * 5;							//	自分
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 0)) * -1;		//	右
 
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0;	//	左下
-	ret += tex.Sample(smp, input.uv + float2(0, 2 * dy)) * -1;		//	下
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * -0;	//	右下
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 2 * dy)) * 0;	//	左下
+	ret += _tex.Sample(_smp, input.uv + float2(0, 2 * dy)) * -1;		//	下
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 2 * dy)) * -0;	//	右下
 
 	//	画素の平均値を返す
 	return ret;
@@ -128,10 +128,10 @@ float4 Sharpness(Output input)
 //	輪郭線抽出（簡単）
 float4 OutLine(Output input)
 {
-	float4 col = tex.Sample(smp, input.uv);
+	float4 col = _tex.Sample(_smp, input.uv);
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -143,17 +143,17 @@ float4 OutLine(Output input)
 	float dy = 1.0f / h;
 	//	近傍テーブルの合計値
 	float4 ret = float4(0, 0, 0, 0);
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, -2 * dy)) * 0;//	左上
-	ret += tex.Sample(smp, input.uv + float2(0, -2 * dy)) * -1;		//	上
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, -2 * dy)) * 0;	//	右上
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, -2 * dy)) * 0;//	左上
+	ret += _tex.Sample(_smp, input.uv + float2(0, -2 * dy)) * -1;		//	上
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, -2 * dy)) * 0;	//	右上
 
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 0)) * -1;		//	左
-	ret += tex.Sample(smp, input.uv) * 4;							//	自分
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 0)) * -1;		//	右
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 0)) * -1;		//	左
+	ret += _tex.Sample(_smp, input.uv) * 4;							//	自分
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 0)) * -1;		//	右
 
-	ret += tex.Sample(smp, input.uv + float2(-2 * dx, 2 * dy)) * 0;	//	左下
-	ret += tex.Sample(smp, input.uv + float2(0, 2 * dy)) * -1;		//	下
-	ret += tex.Sample(smp, input.uv + float2(2 * dx, 2 * dy)) * -0;	//	右下
+	ret += _tex.Sample(_smp, input.uv + float2(-2 * dx, 2 * dy)) * 0;	//	左下
+	ret += _tex.Sample(_smp, input.uv + float2(0, 2 * dy)) * -1;		//	下
+	ret += _tex.Sample(_smp, input.uv + float2(2 * dx, 2 * dy)) * -0;	//	右下
 
 	//	モノクロ化
 	float Y = dot(ret.rgb, float3(0.299, 0.587, 0.114));
@@ -212,10 +212,10 @@ float4 DetailBlur(Texture2D<float4> destTex, SamplerState destSmp,float2 uv,floa
 //	ガウシアンぼかし処理
 float4 GaussianBlur(Output input)
 {
-	float4 col = tex.Sample(smp, input.uv);
+	float4 col = _tex.Sample(_smp, input.uv);
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -226,15 +226,15 @@ float4 GaussianBlur(Output input)
 	float dx = 1.0f / w;
 	//	近傍テーブルの合計値
 	float4 ret = float4(0, 0, 0, 0);
-	//ret += bkweights[0] * col;
+	//ret += _bkweights[0] * col;
 
 	//	0~7の合計値
 	for (int i = 0; i < 8; ++i)
 	{
-		ret += bkweights[i >> 2][i % 4]
-			* tex.Sample(smp, input.uv + float2(i * dx, 0));
-		ret += bkweights[i >> 2][i % 4]
-			* tex.Sample(smp, input.uv + float2(-i * dx, 0));
+		ret += _bkweights[i >> 2][i % 4]
+			* _tex.Sample(_smp, input.uv + float2(i * dx, 0));
+		ret += _bkweights[i >> 2][i % 4]
+			* _tex.Sample(_smp, input.uv + float2(-i * dx, 0));
 	}
 
 	//	x値だけのガウシアンぼかし時の値を返す
@@ -246,7 +246,7 @@ float4 Bloom(Output input)
 {
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -263,15 +263,15 @@ float4 Bloom(Output input)
 	for (int i = 0; i < 8; i++)
 	{
 		bloomAccum += DetailBlur(
-			shrinkHightLumTex, smp, input.uv * uvSize + uvOfst, dx, dy
+			_shrinkHightLumTex, _smp, input.uv * uvSize + uvOfst, dx, dy
 		);
 		uvOfst.y += uvSize.y;
 		uvSize *= 0.5f;
 	}
-	return tex.Sample(smp, input.uv)
-		+ DetailBlur(highLumTex, smp, input.uv, dx, dy)	//	1枚目の高輝度テクスチャをぼかす
-		+ saturate(bloomAccum)							//	縮小ぼかし済み
-		;
+
+	float4 pass1Blur = DetailBlur(_highLumTex, _smp, input.uv, dx, dy) * _bloomColor;	//	1枚目の高輝度テクスチャをぼかす
+	float4 pass2Blur = saturate(bloomAccum) * _bloomColor;								//	縮小ぼかし済み
+	return pass1Blur + pass2Blur;
 }
 
 //	被写界深度によるぼかし処理
@@ -279,7 +279,7 @@ float4 Dof(Output input)
 {
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -290,8 +290,8 @@ float4 Dof(Output input)
 	float dy = 1.0f / h;
 
 	//	真ん中を基準とした深度値の差
-	float depthDiff = abs(depthTex.Sample(smp, float2(0.5f, 0.5f))
-		- depthTex.Sample(smp, input.uv));
+	float depthDiff = abs(_depthTex.Sample(_smp, float2(0.5f, 0.5f))
+		- _depthTex.Sample(_smp, input.uv));
 	depthDiff = pow(depthDiff, 0.5f);	//	深度値の近い値でも変化が出やすいようにする
 	float2 uvSize = float2(1.0f, 0.5f);
 	float2 uvOfst = float2(0, 0);
@@ -302,14 +302,14 @@ float4 Dof(Output input)
 	float4 retColors[2];
 
 	//	通常テクスチャ
-	retColors[0] = tex.Sample(smp, input.uv);
+	retColors[0] = _tex.Sample(_smp, input.uv);
 
 	//	整数部分が0の場合
 	if (no == 0.0f)
 	{
 		//	通常/2サイズのぼかしテクスチャ
-		retColors[1] = DetailBlur(shrinkTex, smp, input.uv * uvSize + uvOfst, dx, dy);
-		//retColors[1] = tex.Sample(smp, input.uv);
+		retColors[1] = DetailBlur(_shrinkTex, _smp, input.uv * uvSize + uvOfst, dx, dy);
+		//retColors[1] = _tex.Sample(_smp, input.uv);
 
 	}
 	//	整数部分が0以外の場合
@@ -330,7 +330,7 @@ float4 Dof(Output input)
 			}
 			//	特定の縮小テクスチャのぼかしを取得
 			retColors[i - no] = DetailBlur(
-				shrinkTex, smp, input.uv * uvSize + uvOfst, dx, dy);
+				_shrinkTex, _smp, input.uv * uvSize + uvOfst, dx, dy);
 			uvOfst.y += uvSize.y;
 			uvSize *= 0.5f;
 		}
@@ -338,55 +338,60 @@ float4 Dof(Output input)
 	return lerp(retColors[0], retColors[1], t);
 }
 
-//	SSAO処理
-float4 SSAO(Output input)
-{
-	//	SSAO処理	
-	float4 col = Normal(input);
-	float ssao = ssaoTex.Sample(smp, input.uv);
-	return col * ssao;
-}
-
 //	ペラポリゴン用のピクセルシェーダー	//
 float4 ps(Output input) : SV_Target
 {
-	//return depthTex.Sample(smp, input.uv);
-	//	深度出力
-	if (input.uv.x < 0.2f && input.uv.y < 0.2f)
+	//	デバッグ表示
+	if (_DebugDispFlag)
 	{
-		float dep = depthTex.Sample(smp, input.uv * 5);
-		dep = 1.0f - pow(dep, 20);
-		return float4(dep, dep, dep, 1.0f);
+		//	深度出力
+		if (input.uv.x < 0.2f && input.uv.y < 0.2f)
+		{
+			float dep = _depthTex.Sample(_smp, input.uv * 5);
+			dep = 1.0f - pow(dep, 20);
+			return float4(dep, dep, dep, 1.0f);
+		}
+		//	ライトからの深度出力
+		else if (input.uv.x < 0.2f && input.uv.y < 0.4f)
+		{
+			float ssao = _ssaoTex.Sample(_smp, (input.uv - float2(0.0f,0.2f)) * 5);
+			return float4(ssao, ssao, ssao, 1.0f);
+		}
+		//	法線出力
+		else if (input.uv.x < 0.2f && input.uv.y < 0.6f)
+		{
+			return _shrinkTex.Sample(_smp,(input.uv - float2(0,0.4f)) * 5);
+		}
+		//	高輝度出力
+		else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
+		{
+			return _highLumTex.Sample(_smp, (input.uv - float2(0, 0.6f)) * 5);
+		}
+		//	高輝度縮小バッファ出力
+		else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
+		{
+			return _shrinkHightLumTex.Sample(_smp, (input.uv - float2(0, 0.8f)) * 5);
+		}
 	}
-	//	ライトからの深度出力
-	else if (input.uv.x < 0.2f && input.uv.y < 0.4f)
+	
+	float4 destCol = _tex.Sample(_smp,input.uv);	//	最終色
+	//	ブルーム
+	destCol += Bloom(input);
+	//	SSAO
+	if (_SSAOFlag)
 	{
-		//float ssao = ssaoTex.Sample(smp, (input.uv - float2(0.0f,0.2f)) * 5);
-		//return float4(ssao, ssao, ssao, 1.0f);
+		destCol *= _ssaoTex.Sample(_smp, input.uv);		//	SSAO
 	}
-	//	法線出力
-	else if (input.uv.x < 0.2f && input.uv.y < 0.6f)
+	//	モノクロ
+	destCol = monokuro(destCol);
+	//	反転
+	if (_nReverse)
 	{
-		return shrinkTex.Sample(smp,(input.uv - float2(0,0.4f)) * 5);
+		destCol = float4(1.0f - destCol.rgb, destCol.a);
 	}
-	//	高輝度出力
-	else if (input.uv.x < 0.2f && input.uv.y < 0.8f)
-	{
-		return highLumTex.Sample(smp, (input.uv - float2(0, 0.6f)) * 5);
-	}
-	//	高輝度縮小バッファ出力
-	else if (input.uv.x < 0.2f && input.uv.y < 1.0f)
-	{
-		return shrinkHightLumTex.Sample(smp, (input.uv - float2(0, 0.8f)) * 5);
-	}
-	float ssao = ssaoTex.Sample(smp, input.uv);
-
-	//	SSAO処理	
-	return SSAO(input);
+	return destCol;
 	//	被写界深度ぼかし処理
 	return Dof(input);
-	//	ブルーム描画
-	return Bloom(input);
 	//	モノクロ化
 	return GaussianBlur(input);
 }
@@ -395,22 +400,22 @@ float4 ps(Output input) : SV_Target
 float4 VerticalBokehPS(Output input) : SV_Target
 {
 	//	通常描画
-	return tex.Sample(smp, input.uv);
+	return _tex.Sample(_smp, input.uv);
 
 	/*
-	float2 normalTex = effectTex.Sample(smp,input.uv).xy;
+	float2 normalTex = _effectTex.Sample(_smp,input.uv).xy;
 	//	RGB→法線ベクトルの変換
 	normalTex = normalTex * 2.0f - 1.0f;
 	//	normalTexの範囲は-1~1だが、幅1がテクスチャ1枚の大きさであり、
 	//	歪みすぎるため0.1を乗算する
-	return tex.Sample(smp, input.uv + normalTex * 0.1f);
+	return _tex.Sample(_smp, input.uv + normalTex * 0.1f);
 	*/
 
-	//return tex.Sample(smp, input.uv);
-	float4 col = tex.Sample(smp, input.uv);
+	//return _tex.Sample(_smp, input.uv);
+	float4 col = _tex.Sample(_smp, input.uv);
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
-	tex.GetDimensions(
+	_tex.GetDimensions(
 		0,			//	ミップレベル
 		w,			//	幅
 		h, 			//	高さ
@@ -423,17 +428,17 @@ float4 VerticalBokehPS(Output input) : SV_Target
 	float4 ret = float4(0, 0, 0, 0);
 
 	//	x方向の合成？
-	//	※なぜbkweights[0]（0~3)までをcolでかけているのか？
-	//ret += bkweights[0] * col;
-	//ret += bkweights[1] * col;
+	//	※なぜ_bkweights[0]（0~3)までをcolでかけているのか？
+	//ret += _bkweights[0] * col;
+	//ret += _bkweights[1] * col;
 
 	//	0~7の合計値
 	for (int i = 0; i < 8; ++i)
 	{
-		ret += bkweights[i >> 2][i % 4]
-			* tex.Sample(smp, input.uv + float2(0, dy * i));
-		ret += bkweights[i >> 2][i % 4]
-			* tex.Sample(smp, input.uv + float2(0, -dy * i));
+		ret += _bkweights[i >> 2][i % 4]
+			* _tex.Sample(_smp, input.uv + float2(0, dy * i));
+		ret += _bkweights[i >> 2][i % 4]
+			* _tex.Sample(_smp, input.uv + float2(0, -dy * i));
 	}
 
 	//	y値だけのガウシアンぼかし時の値を返す
@@ -444,24 +449,24 @@ float4 VerticalBokehPS(Output input) : SV_Target
 BlurOutput BlurPS(Output input)
 {
 	float w,h,miplevels;
-	tex.GetDimensions(0, w, h, miplevels);
+	_tex.GetDimensions(0, w, h, miplevels);
 	float dx = 1.0f / w;
 	float dy = 1.0f / h;
 	BlurOutput ret;
-	ret.col = DetailBlur(tex, smp, input.uv, dx, dy);
-	ret.highLum = DetailBlur(highLumTex, smp, input.uv, dx, dy);
+	ret.col = DetailBlur(_tex, _smp, input.uv, dx, dy);
+	ret.highLum = DetailBlur(_highLumTex, _smp, input.uv, dx, dy);
 	return ret;
 }
 
 //	ポストエフェクトPS
 float4 PostEffectPS(Output input) : SV_Target
 {
-	return tex.Sample(smp, input.uv);
+	return _tex.Sample(_smp, input.uv);
 
-	float2 normalTex = effectTex.Sample(smp,input.uv).xy;
+	float2 normalTex = _effectTex.Sample(_smp,input.uv).xy;
 	//	RGB→法線ベクトルの変換
 	normalTex = normalTex * 2.0f - 1.0f;
 	//	normalTexの範囲は-1~1だが、幅1がテクスチャ1枚の大きさであり、
 	//	歪みすぎるため0.1を乗算する
-	return tex.Sample(smp, input.uv + normalTex * 0.1f);
+	return _tex.Sample(_smp, input.uv + normalTex * 0.1f);
 }

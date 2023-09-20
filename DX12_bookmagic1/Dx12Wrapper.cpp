@@ -11,7 +11,6 @@ using namespace DirectX;
 namespace//	定数定義
 {
 	constexpr float shadow_difinition = 40.0f;	//	ライトデプスの縦横サイズ
-	constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
 }
 
 //	コンストラクタ
@@ -398,9 +397,9 @@ void Dx12Wrapper::Clear(void)
 	auto rtvHeapPointer = rtvHeaps->GetCPUDescriptorHandleForHeapStart();
 	rtvHeapPointer.ptr += bbIdx * _dev->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	_cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
-
+	
 	//	バックバッファをクリア
-	_cmdList->ClearRenderTargetView(rtvHeapPointer, CLSCLR, 0, nullptr);
+	_cmdList->ClearRenderTargetView(rtvHeapPointer, _bgColor, 0, nullptr);
 }
 
 //	フリップ処理

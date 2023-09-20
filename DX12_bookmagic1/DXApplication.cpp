@@ -82,9 +82,9 @@ void DXApplication::OnRender(void)
 	_pDxWrap->Clear();
 	//	描画
 	_pVFX->EndDraw();
-
 	//	Imgui描画
 	DrawImgui();
+
 
 	//	フリップ
 	_pDxWrap->Flip();
@@ -113,6 +113,7 @@ void DXApplication::ModelDraw(void)
 	//	PMDモデルの描画処理
 	_pPmdAct->Draw();
 	_pPmdAct2->Draw();
+
 	//	オリジンレンダーターゲットの描画終了
 	_pVFX->EndOriginDraw();
 }
@@ -149,14 +150,19 @@ void DXApplication::InitImgui(HWND hwnd)
 //	Imguiの描画
 void DXApplication::DrawImgui(void)
 {
+
 	//	描画処理前
 	ImGui_ImplDX12_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
+
 	//	ウィンドウ定義
 	ImGui::Begin("Rendering Test Menu");
 	ImGui::SetWindowSize(ImVec2(400, 500), ImGuiCond_::ImGuiCond_FirstUseEver);
+	//	Imguiのコントロール表示
+	DrawControlImgui();
 	ImGui::End();
+
 	//	描画処理
 	ImGui::Render();
 	_pDxWrap->GetCmdList()->SetDescriptorHeaps(
@@ -165,6 +171,68 @@ void DXApplication::DrawImgui(void)
 	ImGui_ImplDX12_RenderDrawData(
 		ImGui::GetDrawData(), _pDxWrap->GetCmdList().Get()
 	);
+}
+
+//	Imguiのコントロール表示
+void DXApplication::DrawControlImgui(void)
+{
+
+	//	デバッグ表示
+	static bool bDebugDisp = false;
+	ImGui::Checkbox("Debug Display", &bDebugDisp);
+
+	//	画角
+	constexpr float pi = 3.141592653589f;	//	円周率
+	static float  fFov = pi / 2.0f;
+	ImGui::SliderFloat(
+		"Field of view", &fFov, pi / 6.0f, pi / 6.0f * 5.0f
+	);
+
+	//	光源ベクトル
+	static float afLightVec[3] = { 1.0f,-1.0f,1.0f };
+	ImGui::SliderFloat3("Light Vector", afLightVec, -1.0f, 1.0f);
+
+	//	背景色
+	static float bgCol[4] = { 0.5f,0.5f,0.5f,1.0f };
+	ImGui::ColorPicker4("BG color",bgCol,
+		ImGuiColorEditFlags_::ImGuiColorEditFlags_PickerHueWheel |
+		ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
+
+	//	ブルームカラー
+	static float bloomCol[3] = {1.0f,1.0f,1.0f};
+	ImGui::ColorPicker3("Bloom color", bloomCol);
+
+	//	SSAO ON/OFF
+	static bool bSSAO = false;
+	ImGui::Checkbox("SSAO on/off", &bSSAO);
+
+	//	シャドウマップ ON/OFF
+	static bool bShadow = false;
+	ImGui::Checkbox("SelfShadow on/off", &bShadow);
+
+	//	反転
+	static bool bReverse = false;
+	ImGui::Checkbox("Reverse on/off", &bReverse);
+
+	//	モノクロ
+	static bool bMonoChro[3] = {};
+	if (ImGui::TreeNode("Monochro"))
+	{
+		ImGui::Checkbox("r", &bMonoChro[0]);
+		ImGui::SameLine();
+		ImGui::Checkbox("g", &bMonoChro[1]);
+		ImGui::SameLine();
+		ImGui::Checkbox("b", &bMonoChro[2]);
+		ImGui::TreePop();
+	}
+
+	//	セット
+	_pSceneInfo->SetFov(fFov);
+	_pDxWrap->SetBgCol(bgCol);
+	_pSceneInfo->SetLightVec(afLightVec);
+	_pSceneInfo->SetSelfShadow(bShadow);
+	_pSceneInfo->SetSceneInfo();
+	_pVFX->SetPostSetting(bDebugDisp,bSSAO,bMonoChro,bReverse,bloomCol);
 }
 
 

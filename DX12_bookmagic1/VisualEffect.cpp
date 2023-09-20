@@ -57,7 +57,7 @@ namespace//列挙型用
 		MAX
 	};
 	//	定数定義
-	constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
+	//constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
 	constexpr float NONE_CLSCLR[4] = { 0.0f,0.0f,0.0f,1.0f };	//	合成するレンダーターゲットのクリアカラー
 	constexpr float WHITE_CLSCLR[4] = { 1.0f,1.0f,1.0f,1.0f };	//	白のクリアカラー
 	constexpr float shadow_difinition = 40.0f;					//	ライトデプスの縦横サイズ
@@ -88,10 +88,13 @@ void VisualEffect::Init(void)
 	//	ペラポリゴンの作成
 	CreatePeraVertexBuff();
 	CreatePeraRootSignature();
+	CreateAoRootSignature();
 	CreatePeraGraphicPipeLine();
 	//	ssao作成
 	CreateAmbientOcculusionBuffer();
 	CreateAmbientOcculusionDescriptorHeap();
+	//	ポスト設定用作成
+	CreatePostSetting();
 }
 
 //	オリジンのレンダーターゲット作成
@@ -104,7 +107,7 @@ void VisualEffect::CreateOriginRenderTarget(void)
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
-	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, CLSCLR);
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, _pWrap->GetBgCol());
 	//	バッファの作成
 	for (auto& res : _origin1Resource)
 	{
@@ -309,7 +312,7 @@ void VisualEffect::CreateProcessRenderTarget(void)
 	//	ヒーププロパティー設定
 	D3D12_HEAP_PROPERTIES heapProp = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	//	レンダリング時のクリア値と同じ値
-	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, CLSCLR);
+	D3D12_CLEAR_VALUE clearValue = CD3DX12_CLEAR_VALUE(DXGI_FORMAT_R8G8B8A8_UNORM_SRGB, _pWrap->GetBgCol());
 	//	バッファの作成
 	auto result = dev->CreateCommittedResource(
 		&heapProp,
@@ -451,10 +454,11 @@ void VisualEffect::CreatePeraRootSignature(void)
 	//	SSAOテクスチャ用
 	ranges[5].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
 	ranges[5].NumDescriptors = 1;
-
-	//	シーン情報定数バッファセット
+	//	ポスト設定定数バッファ
 	ranges[6].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
 	ranges[6].NumDescriptors = 1;	//	b1
+	ranges[6].OffsetInDescriptorsFromTableStart =
+		D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
 
 	//	レギスター設定
 	UINT nSRVRegister = 0;
@@ -508,13 +512,11 @@ void VisualEffect::CreatePeraRootSignature(void)
 	rp[5].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 	rp[5].DescriptorTable.pDescriptorRanges = &ranges[5];
 	rp[5].DescriptorTable.NumDescriptorRanges = 1;
-
-	//	シーン情報定数バッファセット
+	//	ポスト設定バッファ
 	rp[6].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
 	rp[6].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
 	rp[6].DescriptorTable.pDescriptorRanges = &ranges[6];
 	rp[6].DescriptorTable.NumDescriptorRanges = 1;
-
 
 	//	サンプラー設定
 	D3D12_STATIC_SAMPLER_DESC sampler = CD3DX12_STATIC_SAMPLER_DESC(0);
@@ -551,6 +553,95 @@ void VisualEffect::CreatePeraRootSignature(void)
 		return;
 	}
 
+}
+
+//	AOルートシグネイチャ作成
+void VisualEffect::CreateAoRootSignature(void)
+{
+	//	レンジの設定
+	D3D12_DESCRIPTOR_RANGE ranges[3] = {};
+	//	通常カラー、法線セット、高輝度、縮小高輝度、縮小通常
+	ranges[0].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[0].NumDescriptors = 5;	//	t0,t1,t2,t3,t4
+	//	深度値テクスチャ用
+	ranges[1].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
+	ranges[1].NumDescriptors = 1;	//	t5
+	//	シーン情報定数バッファセット
+	ranges[2].RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV;
+	ranges[2].NumDescriptors = 1;	//	b0
+
+	//	レギスター設定
+	UINT nSRVRegister = 0;
+	UINT nCBVRegister = 0;
+	for (auto& range : ranges)
+	{
+		//	SRV
+		if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_SRV)
+		{
+			range.BaseShaderRegister = nSRVRegister;
+			nSRVRegister += range.NumDescriptors;
+		}
+		//	CBV
+		else if (range.RangeType == D3D12_DESCRIPTOR_RANGE_TYPE_CBV)
+		{
+			range.BaseShaderRegister = nCBVRegister;
+			nCBVRegister += range.NumDescriptors;
+		}
+		else {}
+	}
+
+	//	ルートパラメータの設定
+	D3D12_ROOT_PARAMETER rp[3] = {};
+	//	テクスチャーバッファセット
+	rp[0].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[0].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rp[0].DescriptorTable.pDescriptorRanges = &ranges[0];
+	rp[0].DescriptorTable.NumDescriptorRanges = 1;
+	//	深度値テクスチャー用
+	rp[1].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[1].ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+	rp[1].DescriptorTable.pDescriptorRanges = &ranges[1];
+	rp[1].DescriptorTable.NumDescriptorRanges = 1;
+	//	シーン情報定数バッファセット
+	rp[2].ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+	rp[2].ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+	rp[2].DescriptorTable.pDescriptorRanges = &ranges[2];
+	rp[2].DescriptorTable.NumDescriptorRanges = 1;
+	   
+	//	サンプラー設定
+	D3D12_STATIC_SAMPLER_DESC sampler = CD3DX12_STATIC_SAMPLER_DESC(0);
+
+	//	ルートシグネイチャ設定
+	D3D12_ROOT_SIGNATURE_DESC rsDesc = {};
+	rsDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+	rsDesc.NumParameters = 3;
+	rsDesc.pParameters = rp;
+	rsDesc.NumStaticSamplers = 1;
+	rsDesc.pStaticSamplers = &sampler;
+
+	ComPtr<ID3DBlob> rsBlob;
+	ComPtr<ID3DBlob> errBlob;
+
+	auto result = D3D12SerializeRootSignature(
+		&rsDesc,
+		D3D_ROOT_SIGNATURE_VERSION_1,
+		rsBlob.ReleaseAndGetAddressOf(),
+		errBlob.ReleaseAndGetAddressOf()
+	);
+	Helper::DebugShaderError(result, errBlob.Get());
+	auto dev = _pWrap->GetDevice();
+
+	result = dev->CreateRootSignature(
+		0,
+		rsBlob->GetBufferPointer(),
+		rsBlob->GetBufferSize(),
+		IID_PPV_ARGS(_aoRS.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("ペラポリゴン用ルートシグネイチャー作成失敗\n");
+		return;
+	}
 }
 
 //	ペラポリゴン用グラフィックスパイプライン作成
@@ -726,6 +817,7 @@ void VisualEffect::CreatePeraGraphicPipeLine(void)
 	gpsDesc.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
 	gpsDesc.RTVFormats[1] = DXGI_FORMAT_UNKNOWN;
 	gpsDesc.NumRenderTargets = 1;
+	gpsDesc.pRootSignature = _aoRS.Get();
 	gpsDesc.BlendState.RenderTarget[0].BlendEnable = false;	//	formatがR32_FLOATのため、a値が0.0fでブレンドされてしまうためfalseにする
 	result = dev->CreateGraphicsPipelineState(
 		&gpsDesc,
@@ -901,6 +993,70 @@ void VisualEffect::CreateDepthView(void)
 	);
 }
 
+//	ポスト設定作成
+void VisualEffect::CreatePostSetting(void)
+{
+	//	バッファサイズ
+	auto bufferSize = Helper::AlignmentedSize(
+		sizeof(PostSetting),
+		D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT
+	);
+	UINT64 u_64BufferSize = (UINT64)Helper::AlignmentedSize(
+		sizeof(PostSetting),
+		D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);	//	256アライメントにそろえたサイズ
+	UINT BufferSize = (UINT)Helper::AlignmentedSize(
+		sizeof(PostSetting),
+		D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);	//	256アライメントにそろえたサイズ
+
+
+	//	バッファ作成
+	D3D12_HEAP_PROPERTIES prop = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Buffer(u_64BufferSize);
+	auto dev = _pWrap->GetDevice();
+	auto result = dev->CreateCommittedResource(
+		&prop,
+		D3D12_HEAP_FLAG_NONE,
+		&resDesc,
+		D3D12_RESOURCE_STATE_GENERIC_READ,
+		nullptr,
+		IID_PPV_ARGS(_postSettingResource.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("postSettingのバッファ作成失敗\n");
+	}
+	//	ディスクリプタヒープ作成
+	D3D12_DESCRIPTOR_HEAP_DESC heapDesc = {};
+	heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	heapDesc.NodeMask = 0;
+	heapDesc.NumDescriptors = 1;
+	heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	result = dev->CreateDescriptorHeap(
+		&heapDesc, IID_PPV_ARGS(_postSettingDH.ReleaseAndGetAddressOf())
+	);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("postSettingのディスクリプタヒープ作成失敗\n");
+	}
+	//	ビュー作成
+	D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+	cbvDesc.BufferLocation = _postSettingResource->GetGPUVirtualAddress();
+	cbvDesc.SizeInBytes = BufferSize;
+	dev->CreateConstantBufferView(
+		&cbvDesc,
+		_postSettingDH->GetCPUDescriptorHandleForHeapStart()
+	);
+	//	ポスト設定
+	result = _postSettingResource->Map(0, nullptr, (void**)&_pMapPostSetting);
+	if (FAILED(result))
+	{
+		Helper::DebugOutputFormatString("postSettingのマップ失敗\n");
+	}
+	_pMapPostSetting->nDebugDisp = 0;
+	_pMapPostSetting->nSSAO = 0;
+	_pMapPostSetting->bloomColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
 //	アンビエントオクルージョンバッファの作成
 bool VisualEffect::CreateAmbientOcculusionBuffer(void)
 {
@@ -1039,7 +1195,7 @@ void VisualEffect::PreOriginDraw(void)
 		}
 		else
 		{
-			cmdList->ClearRenderTargetView(handles[i], CLSCLR, 0, nullptr);
+			cmdList->ClearRenderTargetView(handles[i], _pWrap->GetBgCol(), 0, nullptr);
 		}
 	}
 	//	深度バッファビューをクリア
@@ -1097,7 +1253,7 @@ void VisualEffect::ProceDraw(void)
 	cmdList->OMSetRenderTargets(1, &rtvHeapPointer, false, nullptr);
 
 	//	クリアカラー	
-	cmdList->ClearRenderTargetView(rtvHeapPointer, CLSCLR, 0, nullptr);
+	cmdList->ClearRenderTargetView(rtvHeapPointer, _pWrap->GetBgCol(), 0, nullptr);
 	auto& WinApp = Win32Application::Instance();
 	SIZE rec = WinApp.GetWindowSize();
 	auto size = WinApp.GetWindowSize();
@@ -1138,6 +1294,12 @@ void VisualEffect::ProceDraw(void)
 	cmdList->SetGraphicsRootDescriptorTable(
 		4,
 		handle);
+	//	ポスト設定をヒープと関連付ける
+	cmdList->SetDescriptorHeaps(1, _postSettingDH.GetAddressOf());
+	cmdList->SetGraphicsRootDescriptorTable(
+		6,
+		_postSettingDH->GetGPUDescriptorHandleForHeapStart()
+	);
 
 	cmdList->DrawInstanced(4, 1, 0, 0);
 
@@ -1192,7 +1354,6 @@ void VisualEffect::EndDraw(void)
 		5,
 		_aoSRVDH->GetGPUDescriptorHandleForHeapStart()
 	);
-
 	cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 	cmdList->IASetVertexBuffers(0, 1, &_prPoriVBV);						//	ペラポリゴン用の頂点バッファビューセット
 	cmdList->DrawInstanced(4, 1, 0, 0);
@@ -1358,7 +1519,7 @@ void VisualEffect::DrawAmbientOcculusion(void)
 	cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
 
 	//	ルートシグネイチャ、pipelineのセット
-	cmdList->SetGraphicsRootSignature(_prPoriRS.Get());					//	ペラポリゴン用のルートシグネイチャセット
+	cmdList->SetGraphicsRootSignature(_aoRS.Get());					//	ペラポリゴン用のルートシグネイチャセット
 	cmdList->SetPipelineState(_aoPipeline.Get());						//	ssaopipeline用のパイプラインセット
 
 	//	頂点バッファビューのセット
@@ -1377,12 +1538,12 @@ void VisualEffect::DrawAmbientOcculusion(void)
 	cmdList->SetDescriptorHeaps(1, _depthSRVHeap.GetAddressOf());
 	handle = _depthSRVHeap->GetGPUDescriptorHandleForHeapStart();
 	cmdList->SetGraphicsRootDescriptorTable(
-		3,
+		1,
 		handle);
 	//	シーン情報の定数バッファ
 	auto& pDX = DXApplication::Instance();
 	auto pSceneInfo = pDX.GetSceneInfo();
-	pSceneInfo->CommandSet_SceneView(6);
+	pSceneInfo->CommandSet_SceneView(2);
 	//	描画
 	cmdList->DrawInstanced(4, 1, 0, 0);
 
@@ -1393,4 +1554,19 @@ void VisualEffect::DrawAmbientOcculusion(void)
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 
+}
+
+//	ポスト設定
+void VisualEffect::SetPostSetting(bool bDebugDisp, bool bSSAO,bool bMonochro[3], bool bReverse,float bloomColor[3])
+{
+	_pMapPostSetting->nDebugDisp = static_cast<int>(bDebugDisp);
+	_pMapPostSetting->nSSAO = static_cast<int>(bSSAO);
+	for (int nCntMono = 0;nCntMono < 3;nCntMono++)
+	{
+		_pMapPostSetting->nMonochro[nCntMono] = static_cast<int>(bMonochro[nCntMono]);
+	}
+	_pMapPostSetting->nReverse = static_cast<int>(bReverse);
+	_pMapPostSetting->bloomColor.x = bloomColor[0];
+	_pMapPostSetting->bloomColor.y = bloomColor[1];
+	_pMapPostSetting->bloomColor.z = bloomColor[2];
 }
