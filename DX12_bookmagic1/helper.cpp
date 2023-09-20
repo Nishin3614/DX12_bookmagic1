@@ -85,7 +85,7 @@ std::vector<float> Helper::GetGaussianWeights(size_t count, float s)
 
 std::string Helper::GetExtension(const std::string& path)
 {
-	int idx = path.rfind('.');
+	size_t idx = path.rfind('.');
 	if (idx == std::string::npos)
 	{
 		return "";
@@ -149,9 +149,9 @@ std::string Helper::GetTexturePathFromModelAndTexPath(const std::string& modelPa
 {
 	//	/,\\のどちらで設定されているかわからないため、判別する処理
 	//	rfindで見つからない場合、epos(-1→0xffffffff）を返す
-	int pathIndex1 = modelPath.rfind('/');
-	int pathIndex2 = modelPath.rfind('\\');
-	auto pathIndex = max(pathIndex1, pathIndex2);
+	size_t pathIndex1 = modelPath.rfind('/');
+	size_t pathIndex2 = modelPath.rfind('\\');
+	auto pathIndex = min(pathIndex1, pathIndex2);
 	auto folderPath = modelPath.substr(0, pathIndex + 1);	//	フォルダ名だけ取得
 	return folderPath + texPath;
 }
@@ -162,7 +162,7 @@ std::string Helper::GetTexturePathFromModelAndTexPath(const std::string& modelPa
 //	@return 分離前後の文字列ペア
 std::pair<std::string, std::string> Helper::SplitFileName(const std::string& path, const char splitter)
 {
-	int idx = path.find(splitter);
+	size_t idx = path.find(splitter);
 	std::pair<std::string, std::string> ret;
 	ret.first = path.substr(0, idx);
 	ret.second = path.substr(

@@ -27,6 +27,7 @@ public:
 		int nSSAO;						//	SSAO表示フラグ
 		int nMonochro[3];				//	モノクロフラグ
 		int nReverse;					//	反転フラグ
+		int nDof;						//	被写界深度フラグ
 	};
 	//	関数	//
 	//	コンストラクタ
@@ -54,7 +55,7 @@ public:
 	void DrawAmbientOcculusion(void);
 
 	//	ポスト設定処理
-	void SetPostSetting(bool bDebugDisp,bool bSSAO,bool bMonochro[3],bool bReverse,float bloomColor[3]);
+	void SetPostSetting(bool bDebugDisp,bool bSSAO,bool bMonochro[3],bool bReverse,bool bDof,float bloomColor[3]);
 
 private:
 

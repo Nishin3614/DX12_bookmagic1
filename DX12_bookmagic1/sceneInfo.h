@@ -69,9 +69,9 @@ private:
 	DirectX::XMFLOAT3 _eye;		//	視点
 	DirectX::XMFLOAT3 _target;	//	注視点
 	DirectX::XMFLOAT3 _up;		//	上ベクトル
-	float _fov;					//	画角
+	float _fov = 0.0f;					//	画角
 	DirectX::XMFLOAT3 _lightVec = { 1,-1,1 };	//	光源ベクトル
-	bool _bSelfShadow;			//	シャドウマップOn/Off
+	bool _bSelfShadow = false;			//	シャドウマップOn/Off
 
-	SIZE _windowSize;			//	ウィンドウサイズ
+	SIZE _windowSize = {};			//	ウィンドウサイズ
 };

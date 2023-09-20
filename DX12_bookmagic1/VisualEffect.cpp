@@ -60,7 +60,9 @@ namespace//列挙型用
 	//constexpr float CLSCLR[4] = { 0.5f,0.5f,0.5f,1.0f };		//	レンダーターゲットクリアカラー
 	constexpr float NONE_CLSCLR[4] = { 0.0f,0.0f,0.0f,1.0f };	//	合成するレンダーターゲットのクリアカラー
 	constexpr float WHITE_CLSCLR[4] = { 1.0f,1.0f,1.0f,1.0f };	//	白のクリアカラー
-	constexpr float shadow_difinition = 40.0f;					//	ライトデプスの縦横サイズ
+	constexpr float SHADOW_DIFINITION = 40.0f;					//	ライトデプスの縦横サイズ
+	constexpr UINT UINT_SHADOW_DIFINITION = 40;
+	constexpr UINT64 UINT64_SHADOW_DIFINITION = 40;
 }
 
 //	名前空間
@@ -914,8 +916,8 @@ void VisualEffect::CreateDepthView(void)
 	}
 
 	//	シャドウマップ用深度バッファ
-	depthResDesc.Width = shadow_difinition;
-	depthResDesc.Height = shadow_difinition;
+	depthResDesc.Width = SHADOW_DIFINITION;
+	depthResDesc.Height = SHADOW_DIFINITION;
 	depthResDesc.Format = DXGI_FORMAT_R32_TYPELESS;
 	result = dev->CreateCommittedResource(
 		&depthHeapProp,						//	ヒープ設定
@@ -1054,7 +1056,7 @@ void VisualEffect::CreatePostSetting(void)
 	}
 	_pMapPostSetting->nDebugDisp = 0;
 	_pMapPostSetting->nSSAO = 0;
-	_pMapPostSetting->bloomColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	_pMapPostSetting->bloomColor = DirectX::XMFLOAT4(0.0f, 0.0f, 0.0f, 1.0f);
 }
 
 //	アンビエントオクルージョンバッファの作成
@@ -1418,8 +1420,8 @@ void VisualEffect::DrawShrinkTextureForBlur(void)
 	
 	vp.MaxDepth = 1.0f;
 	vp.MinDepth = 0.0f;
-	vp.Height = desc.Height / 2;
-	vp.Width = desc.Width / 2;
+	vp.Height = desc.Height / 2.0f;
+	vp.Width = desc.Width / 2.0f;
 	sr.top = 0;
 	sr.left = 0;
 	sr.right = vp.Width;
@@ -1473,10 +1475,10 @@ void VisualEffect::ShadowDraw(void)
 	cmdList->ClearDepthStencilView(handle,
 		D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	D3D12_VIEWPORT vp =
-		CD3DX12_VIEWPORT(0.0f, 0.0f, shadow_difinition, shadow_difinition);
+		CD3DX12_VIEWPORT(0.0f, 0.0f, SHADOW_DIFINITION, SHADOW_DIFINITION);
 	cmdList->RSSetViewports(1, &vp);//ビューポート
 
-	CD3DX12_RECT rc(0, 0, shadow_difinition, shadow_difinition);
+	CD3DX12_RECT rc(0, 0, SHADOW_DIFINITION, SHADOW_DIFINITION);
 	cmdList->RSSetScissorRects(1, &rc);//シザー(切り抜き)矩形
 }
 
@@ -1557,7 +1559,7 @@ void VisualEffect::DrawAmbientOcculusion(void)
 }
 
 //	ポスト設定
-void VisualEffect::SetPostSetting(bool bDebugDisp, bool bSSAO,bool bMonochro[3], bool bReverse,float bloomColor[3])
+void VisualEffect::SetPostSetting(bool bDebugDisp, bool bSSAO,bool bMonochro[3], bool bReverse, bool bDof, float bloomColor[3])
 {
 	_pMapPostSetting->nDebugDisp = static_cast<int>(bDebugDisp);
 	_pMapPostSetting->nSSAO = static_cast<int>(bSSAO);
@@ -1566,6 +1568,7 @@ void VisualEffect::SetPostSetting(bool bDebugDisp, bool bSSAO,bool bMonochro[3],
 		_pMapPostSetting->nMonochro[nCntMono] = static_cast<int>(bMonochro[nCntMono]);
 	}
 	_pMapPostSetting->nReverse = static_cast<int>(bReverse);
+	_pMapPostSetting->nDof = static_cast<int>(bDof);
 	_pMapPostSetting->bloomColor.x = bloomColor[0];
 	_pMapPostSetting->bloomColor.y = bloomColor[1];
 	_pMapPostSetting->bloomColor.z = bloomColor[2];

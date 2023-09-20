@@ -275,7 +275,7 @@ float4 Bloom(Output input)
 }
 
 //	被写界深度によるぼかし処理
-float4 Dof(Output input)
+float4 Dof(Output input,float4 srcCol)
 {
 	//	テクスチャのサイズ情報取得
 	float w, h, level;
@@ -302,7 +302,7 @@ float4 Dof(Output input)
 	float4 retColors[2];
 
 	//	通常テクスチャ
-	retColors[0] = _tex.Sample(_smp, input.uv);
+	retColors[0] = srcCol;
 
 	//	整数部分が0の場合
 	if (no == 0.0f)
@@ -375,13 +375,19 @@ float4 ps(Output input) : SV_Target
 	}
 	
 	float4 destCol = _tex.Sample(_smp,input.uv);	//	最終色
-	//	ブルーム
-	destCol += Bloom(input);
+
 	//	SSAO
 	if (_SSAOFlag)
 	{
 		destCol *= _ssaoTex.Sample(_smp, input.uv);		//	SSAO
 	}
+	//	被写界深度ぼかし処理	
+	if (_nDof)
+	{
+		destCol = Dof(input, destCol);
+	}
+	//	ブルーム
+	destCol += Bloom(input);
 	//	モノクロ
 	destCol = monokuro(destCol);
 	//	反転
@@ -389,10 +395,9 @@ float4 ps(Output input) : SV_Target
 	{
 		destCol = float4(1.0f - destCol.rgb, destCol.a);
 	}
+
 	return destCol;
-	//	被写界深度ぼかし処理
-	return Dof(input);
-	//	モノクロ化
+	//	ガウシアンぼかし
 	return GaussianBlur(input);
 }
 

@@ -32,6 +32,7 @@ cbuffer PostSetting : register(b1)
 	int _MonochroG;					//	モノクロフラグ
 	int _MonochroB;					//	モノクロフラグ
 	int _nReverse;					//	反転フラグ
+	int _nDof;						//	被写界深度フラグ
 }
 
 //	出力用変数

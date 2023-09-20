@@ -14,27 +14,27 @@ Output BasicVS(
 {
 	Output output;									//	ピクセルシェーダーに渡す値
 	float w = (float)weight / 100.0f;
-	matrix bm = bones[boneno[0]] * w	//	ボーン0のボーン影響度
-		+ bones[boneno[1]] * (1 - w);	//	ボーン1のボーン影響度
+	matrix bm = _bones[boneno[0]] * w	//	ボーン0のボーン影響度
+		+ _bones[boneno[1]] * (1 - w);	//	ボーン1のボーン影響度
 	pos = mul(bm, pos);
-	pos = mul(world, pos);
+	pos = mul(_world, pos);
 	//	インスタンス番号が1なら、影行列を計算する
 	if (instNo == 1)
 	{
-		pos = mul(shadow, pos);
+		pos = mul(_shadow, pos);
 	}
 	output.pos = pos;
-	pos = mul(mul(proj, view), pos);	//	通常カメラから投影した行列
-	//pos = mul(lightCamera, output.pos);	//	通常カメラから投影した行列
+	pos = mul(mul(_proj, _view), pos);	//	通常カメラから投影した行列
+	//pos = mul(_lightCamera, output.pos);	//	通常カメラから投影した行列
 
 	output.svpos = pos;
 	output.instNo = instNo;							//	インスタンス番号
 	normal.w = 0;									//	平行移動成分を無効にする
-	output.normal = mul(world, normal);				//	法線にもワールド変換を行う
-	output.vnormal = mul(view, output.normal);		//	ビュー変換された法線ベクトル
+	output.normal = mul(_world, normal);				//	法線にもワールド変換を行う
+	output.vnormal = mul(_view, output.normal);		//	ビュー変換された法線ベクトル
 	output.uv = uv;
-	output.ray = normalize(pos.xyz - eye);			//	視線ベクトル
-	output.tpos = mul(lightCamera, output.pos);
+	output.ray = normalize(pos.xyz - _eye);			//	視線ベクトル
+	output.tpos = mul(_lightCamera, output.pos);
 	return output;
 }
 
@@ -51,10 +51,10 @@ float4 ShadowVS(
 	float fWeight = float(weight) / 100.0f;
 	
 	matrix conBone =
-		bones[boneno[0]] * fWeight
-		+ bones[boneno[1]] * (1 - fWeight);
+		_bones[boneno[0]] * fWeight
+		+ _bones[boneno[1]] * (1 - fWeight);
 
-	pos = mul(world, mul(conBone, pos));
-	return mul(lightCamera, pos);
+	pos = mul(_world, mul(conBone, pos));
+	return mul(_lightCamera, pos);
 
 }

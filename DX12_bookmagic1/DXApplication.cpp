@@ -199,8 +199,12 @@ void DXApplication::DrawControlImgui(void)
 		ImGuiColorEditFlags_::ImGuiColorEditFlags_AlphaBar);
 
 	//	ブルームカラー
-	static float bloomCol[3] = {1.0f,1.0f,1.0f};
+	static float bloomCol[3] = {0.0f,0.0f,0.0f };
 	ImGui::ColorPicker3("Bloom color", bloomCol);
+
+	//	被写界深度 on/off
+	static bool bDof = false;
+	ImGui::Checkbox("Dof on/off", &bDof);
 
 	//	SSAO ON/OFF
 	static bool bSSAO = false;
@@ -232,7 +236,7 @@ void DXApplication::DrawControlImgui(void)
 	_pSceneInfo->SetLightVec(afLightVec);
 	_pSceneInfo->SetSelfShadow(bShadow);
 	_pSceneInfo->SetSceneInfo();
-	_pVFX->SetPostSetting(bDebugDisp,bSSAO,bMonoChro,bReverse,bloomCol);
+	_pVFX->SetPostSetting(bDebugDisp,bSSAO,bMonoChro,bReverse,bDof,bloomCol);
 }
 
 
