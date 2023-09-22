@@ -2,14 +2,6 @@
 #include <Effekseer.h>
 #include <EffekseerRendererDX12.h>
 
-//#include <LLGI.Compiler.h>
-//#include <LLGI.Graphics.h>
-//#include <LLGI.Platform.h>
-//#include <DX12/LLGI.CommandListDX12.h>
-//#include <DX12/LLGI.GraphicsDX12.h>
-//#include <Utils/LLGI.CommandListPool.h>
-//#include "../Utils/Window.h"
-
 #pragma comment(lib,"EffekseerRendererDX12.lib")
 #pragma comment(lib,"Effekseer.lib")
 #pragma comment(lib,"LLGI.lib")
@@ -29,6 +21,10 @@ public:
 
 	//	同期
 	void Syncronize(void);
+	//	エフェクト再生
+	void Play(void);
+	//	エフェクト停止
+	void Stop(void);
 private:
 	//	エフェクトレンダラー
 	::EffekseerRenderer::RendererRef _efkRenderer;
@@ -46,6 +42,11 @@ private:
 	::Effekseer::RefPtr<Effekseer::Effect> _effect = nullptr;
 	//	エフェクトハンドル
 	Effekseer::Handle _efkHandle;
+
+	::Effekseer::RefPtr<Effekseer::Effect> _effect2 = nullptr;
+	//	エフェクトハンドル
+	Effekseer::Handle _efkHandle2;
+
 
 	/*	他のクラス	*/
 	Dx12Wrapper* _pWrap;

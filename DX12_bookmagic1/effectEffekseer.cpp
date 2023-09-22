@@ -52,15 +52,20 @@ void EffectEffekseer::Init(void)
 		1.0f,
 		(const EFK_CHAR*)L"effect/10"
 	);
-	//	エフェクトの再生
-	_efkHandle = _efkManager->Play(_effect, 0, 5, 0);
-	Syncronize();
 
+	//	エフェクトの読み込み
+	_effect2 = Effekseer::Effect::Create(
+		_efkManager,
+		(const EFK_CHAR*)L"effect/10/SimpleLaser.efk",
+		1.0f,
+		(const EFK_CHAR*)L"effect/10"
+	);
 }
 
 //	描画処理
 void EffectEffekseer::Draw(void)
 {
+	Syncronize();
 	_efkManager->Update();		//	時間更新
 	_efkMemoryPool->NewFrame();	//	描画すべきレンダーターゲットを選択
 
@@ -94,5 +99,21 @@ void EffectEffekseer::Syncronize(void)
 	}
 	_efkRenderer->SetCameraMatrix(fkViewMat);
 	_efkRenderer->SetProjectionMatrix(fkProjMat);
+}
+
+//	再生
+void EffectEffekseer::Play(void)
+{
+	//	エフェクトの再生
+	_efkHandle = _efkManager->Play(_effect, 0, 5, 0);
+	//	エフェクトの再生
+	_efkHandle2 = _efkManager->Play(_effect2, 5, 5, 0);
+}
+
+//	停止
+void EffectEffekseer::Stop(void)
+{
+	//	エフェクトの再生
+	_efkManager->StopAllEffects();
 }
 

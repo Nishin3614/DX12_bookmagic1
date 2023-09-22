@@ -238,6 +238,21 @@ void DXApplication::DrawControlImgui(void)
 		ImGui::TreePop();
 	}
 
+	//	エフェクト再生
+	if (ImGui::TreeNode("Effect"))
+	{
+		if (ImGui::Button("Play", ImVec2(50, 20)))
+		{
+			_pEffectEffekseer->Play();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Stop", ImVec2(50, 20)))
+		{
+			_pEffectEffekseer->Stop();
+		}	
+		ImGui::TreePop();
+	}
+
 	//	セット
 	_pSceneInfo->SetFov(fFov);
 	_pDxWrap->SetBgCol(bgCol);
