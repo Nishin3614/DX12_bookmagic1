@@ -54,6 +54,11 @@ public:
 	//	シャドウマップOnOff設定
 	void SetSelfShadow(bool bShadow);// { _bSelfShadow = bShadow; }
 
+	/*	取得処理	*/
+	//	ビュー行列取得
+	DirectX::XMMATRIX GetViewMatrix(void)const { return _pMapSceneMtx->view; }
+	//	プロジェクション行列取得
+	DirectX::XMMATRIX GetProjMatrix(void)const { return _pMapSceneMtx->proj; }
 private:
 	
 	//	関数	//

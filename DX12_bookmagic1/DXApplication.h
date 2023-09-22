@@ -3,6 +3,7 @@
 #define _H_DXAPPLICATION_
 
 //	インクルード
+#define NOMINMAX	//	std::min,std::maxを使用できるようにするため
 #include <Windows.h>
 
 //	クラスの前方宣言
@@ -11,6 +12,7 @@ class SceneInfo;
 class VisualEffect;
 class PMDActor;
 class PMDRenderer;
+class EffectEffekseer;
 //	クラス宣言
 class DXApplication
 {
@@ -64,6 +66,7 @@ private:
 	PMDActor* _pPmdAct;										//	PMDアクタークラス
 	PMDActor* _pPmdAct2;
 	PMDRenderer* _pPmdRender;								//	PMDレンダラークラス
+	EffectEffekseer* _pEffectEffekseer;
 };
 
 #endif // !_H_DXAPPLICATION_

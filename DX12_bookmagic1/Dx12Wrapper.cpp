@@ -16,6 +16,7 @@ namespace//	定数定義
 //	コンストラクタ
 Dx12Wrapper::Dx12Wrapper()
 {
+
 }
 
 /*	初期化関連の処理	*/

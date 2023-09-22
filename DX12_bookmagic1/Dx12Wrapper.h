@@ -57,6 +57,8 @@ public:
 	ComPtr<ID3D12Device> GetDevice(void) { return _dev; }
 	//	コマンドリストの取得
 	ComPtr<ID3D12GraphicsCommandList> GetCmdList(void) { return _cmdList; }
+	//	コマンドキューの取得
+	ComPtr<ID3D12CommandQueue> GetCmdQue(void) { return _cmdQueue; }
 	//	バックバッファのディスク情報取得
 	D3D12_RESOURCE_DESC GetBackDesc(void) { return _backBuffers[0]->GetDesc(); }
 	//	ディスクリプタヒープのディスク情報取得

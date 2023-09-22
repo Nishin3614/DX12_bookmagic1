@@ -5,6 +5,7 @@
 #include "VisualEffect.h"
 #include "PMDActor.h"
 #include "PMDRenderer.h"
+#include "effectEffekseer.h"
 
 //	IMGUIファイル
 #include "imgui/imgui.h"
@@ -27,7 +28,8 @@ DXApplication::DXApplication() :
 	_pVFX(nullptr),
 	_pPmdAct(nullptr),
 	_pPmdAct2(nullptr),
-	_pPmdRender(nullptr)
+	_pPmdRender(nullptr),
+	_pEffectEffekseer(nullptr)
 {
 }
 
@@ -55,6 +57,10 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	//	PMDレンダラーの初期化処理
 	_pPmdRender = new PMDRenderer(_pDxWrap);
 	_pPmdRender->Init();
+
+	//	エフェクトEffekseerの初期化処理
+	_pEffectEffekseer = new EffectEffekseer(_pDxWrap);
+	_pEffectEffekseer->Init();
 
 	//	Imgui初期化処理
 	InitImgui(hwnd);
@@ -114,6 +120,8 @@ void DXApplication::ModelDraw(void)
 	_pPmdAct->Draw();
 	_pPmdAct2->Draw();
 
+	//	エフェクト描画
+	_pEffectEffekseer->Draw();
 	//	オリジンレンダーターゲットの描画終了
 	_pVFX->EndOriginDraw();
 }
@@ -265,6 +273,10 @@ void DXApplication::OnRelease(void)
 	//	PMDレンダラーの解放
 	delete _pPmdRender;
 	_pPmdRender = nullptr;
+
+	//	effectEffekseerの解放
+	delete _pEffectEffekseer;
+	_pEffectEffekseer = nullptr;
 }
 
 //	更新処理
