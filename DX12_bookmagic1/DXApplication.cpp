@@ -6,6 +6,7 @@
 #include "PMDActor.h"
 #include "PMDRenderer.h"
 #include "effectEffekseer.h"
+#include "stringDisp.h"
 
 //	IMGUIファイル
 #include "imgui/imgui.h"
@@ -62,6 +63,10 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	_pEffectEffekseer = new EffectEffekseer(_pDxWrap);
 	_pEffectEffekseer->Init();
 
+	//	文字列表示の初期化処理
+	_pStringDisp = new StringDisp(_pDxWrap);
+	_pStringDisp->Init();
+
 	//	Imgui初期化処理
 	InitImgui(hwnd);
 }
@@ -88,12 +93,15 @@ void DXApplication::OnRender(void)
 	_pDxWrap->Clear();
 	//	描画
 	_pVFX->EndDraw();
+	//	文字列描画
+	_pStringDisp->Draw();
 	//	Imgui描画
 	DrawImgui();
 
-
 	//	フリップ
 	_pDxWrap->Flip();
+	//	文字列描画終了
+	_pStringDisp->EndStrDisp();
 }
 
 //	シャドウマップ描画
@@ -292,6 +300,11 @@ void DXApplication::OnRelease(void)
 	//	effectEffekseerの解放
 	delete _pEffectEffekseer;
 	_pEffectEffekseer = nullptr;
+
+	//	文字列表示の解放
+	_pStringDisp->Release();
+	delete _pStringDisp;
+	_pStringDisp = nullptr;
 }
 
 //	更新処理

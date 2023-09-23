@@ -423,21 +423,8 @@ void Dx12Wrapper::Flip(void)
 		1,			//	実行するコマンドリスト数
 		cmdlists);	//	コマンドリスト配列の先頭アドレス
 
-	_cmdQueue->Signal(_fence.Get(), ++_fenceVal);
-
-	if (_fence->GetCompletedValue() != _fenceVal)
-	{
-		//	イベントハンドルの取得
-		auto event = CreateEvent(nullptr, false, false, nullptr);
-		if (event != NULL)
-		{
-			_fence->SetEventOnCompletion(_fenceVal, event);
-			//	イベントが発生するまで待ち続ける（INFINITE）
-			WaitForSingleObject(event, INFINITE);
-			//	イベントハンドルを閉じる
-			CloseHandle(event);
-		}
-	}
+	//	待ち
+	WaitForCommandQueue();
 
 	//	コマンドアロケーターとコマンドリストをリセットする
 	auto result = _cmdAllocator->Reset();	//	キューをクリア
@@ -456,6 +443,26 @@ void Dx12Wrapper::SetBarrier(ID3D12Resource* res, D3D12_RESOURCE_STATES pre, D3D
 	_cmdList->ResourceBarrier(1,
 		&resBarri);
 
+}
+
+//	コマンド開始まで待ち処理
+void Dx12Wrapper::WaitForCommandQueue(void)
+{
+	_cmdQueue->Signal(_fence.Get(), ++_fenceVal);
+
+	if (_fence->GetCompletedValue() != _fenceVal)
+	{
+		//	イベントハンドルの取得
+		auto event = CreateEvent(nullptr, false, false, nullptr);
+		if (event != NULL)
+		{
+			_fence->SetEventOnCompletion(_fenceVal, event);
+			//	イベントが発生するまで待ち続ける（INFINITE）
+			WaitForSingleObject(event, INFINITE);
+			//	イベントハンドルを閉じる
+			CloseHandle(event);
+		}
+	}
 }
 
 //	テクスチャの読み込み処理

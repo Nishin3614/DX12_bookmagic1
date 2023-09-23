@@ -118,13 +118,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>$(DXTEX_DIR);$(EFK_ROOT_DIR)/Effekseer;$(EFK_ROOT_DIR)/EffekseerRendererDX12;$(EFK_ROOT_DIR)/3rdParty/LLGI/src;$(EFK_ROOT_DIR)/EffekseerRendererCommon;$(EFK_ROOT_DIR)/EffekseerRendererLLGI;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(DXTEX_DIR);$(EFK_ROOT_DIR)/Effekseer;$(EFK_ROOT_DIR)/EffekseerRendererDX12;$(EFK_ROOT_DIR)/3rdParty/LLGI/src;$(EFK_ROOT_DIR)/EffekseerRendererCommon;$(EFK_ROOT_DIR)/EffekseerRendererLLGI;$(DXTK12_DIR)/Inc;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(DXTEX_DIR)\Bin\Desktop_2019_Win10\x64\Debug;$(EFK_ROOT_DIR)/Effekseer/Debug;$(EFK_ROOT_DIR)/3rdParty/LLGI/src/Debug;$(EFK_ROOT_DIR)/EffekseerRendererDX12/Debug;$(EFK_ROOT_DIR)/EffekseerRendererLLGI/Debug;$(EFK_ROOT_DIR)/EffekseerRendererCommon/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(DXTEX_DIR)\Bin\Desktop_2019_Win10\x64\Debug;$(EFK_ROOT_DIR)/Effekseer/Debug;$(EFK_ROOT_DIR)/3rdParty/LLGI/src/Debug;$(EFK_ROOT_DIR)/EffekseerRendererDX12/Debug;$(EFK_ROOT_DIR)/EffekseerRendererLLGI/Debug;$(EFK_ROOT_DIR)/EffekseerRendererCommon/Debug;$(DXTK12_DIR)/Bin/Desktop_2019_Win10/x64/Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -159,6 +159,7 @@
     <ClCompile Include="PMDActor.cpp" />
     <ClCompile Include="PMDRenderer.cpp" />
     <ClCompile Include="sceneInfo.cpp" />
+    <ClCompile Include="stringDisp.cpp" />
     <ClCompile Include="VisualEffect.cpp" />
     <ClCompile Include="Win32Application.cpp" />
   </ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="PMDActor.h" />
     <ClInclude Include="PMDRenderer.h" />
     <ClInclude Include="sceneInfo.h" />
+    <ClInclude Include="stringDisp.h" />
     <ClInclude Include="VisualEffect.h" />
     <ClInclude Include="Win32Application.h" />
   </ItemGroup>

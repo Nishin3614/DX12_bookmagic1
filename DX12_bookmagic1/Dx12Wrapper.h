@@ -49,6 +49,8 @@ public:
 	void Flip(void);
 	//	バリア設定処理
 	void SetBarrier(ID3D12Resource* res, D3D12_RESOURCE_STATES pre, D3D12_RESOURCE_STATES dest);
+	//	コマンドのイベント発生まで待つ処理
+	void WaitForCommandQueue(void);
 
 	/*	情報取得関連の処理*/
 	//	スワップチェインの取得

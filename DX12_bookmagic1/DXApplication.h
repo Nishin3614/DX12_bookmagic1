@@ -13,6 +13,7 @@ class VisualEffect;
 class PMDActor;
 class PMDRenderer;
 class EffectEffekseer;
+class StringDisp;
 //	クラス宣言
 class DXApplication
 {
@@ -67,6 +68,7 @@ private:
 	PMDActor* _pPmdAct2;
 	PMDRenderer* _pPmdRender;								//	PMDレンダラークラス
 	EffectEffekseer* _pEffectEffekseer;
+	StringDisp* _pStringDisp;
 };
 
 #endif // !_H_DXAPPLICATION_
