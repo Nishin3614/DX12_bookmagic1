@@ -42,6 +42,9 @@ public:
 	//	アニメーションを開始する
 	void PlayAnimation(void);
 
+	//	インスタンス数の設定
+	static void SetInstance(const bool& bPlaneShadow);
+
 private:
 	template<typename T>
 	using ComPtr = Microsoft::WRL::ComPtr<T>;
@@ -241,6 +244,7 @@ private:
 	float _angle;										//	方向
 	DWORD _startTime;									//	アニメーション開始時のミリ秒
 	DWORD _duration;									//	アニメーションの最終フレーム
+	static unsigned int _nInstance;						//	インスタンス数(1:モデル描画のみ、2:モデル、地面影)
 
 	//	PMDのデータ
 	unsigned int _vertNum;								//	頂点数

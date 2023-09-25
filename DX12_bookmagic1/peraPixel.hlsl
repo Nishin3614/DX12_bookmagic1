@@ -351,7 +351,7 @@ float4 ps(Output input) : SV_Target
 			dep = 1.0f - pow(dep, 20);
 			return float4(dep, dep, dep, 1.0f);
 		}
-		//	ライトからの深度出力
+		//	SSAO
 		else if (input.uv.x < 0.2f && input.uv.y < 0.4f)
 		{
 			float ssao = _ssaoTex.Sample(_smp, (input.uv - float2(0.0f,0.2f)) * 5);
@@ -360,7 +360,8 @@ float4 ps(Output input) : SV_Target
 		//	法線出力
 		else if (input.uv.x < 0.2f && input.uv.y < 0.6f)
 		{
-			return _shrinkTex.Sample(_smp,(input.uv - float2(0,0.4f)) * 5);
+			return _texNormal.Sample(_smp, (input.uv - float2(0, 0.4f)) * 5);
+			//return _shrinkTex.Sample(_smp,(input.uv - float2(0,0.4f)) * 5);
 		}
 		//	高輝度出力
 		else if (input.uv.x < 0.2f && input.uv.y < 0.8f)

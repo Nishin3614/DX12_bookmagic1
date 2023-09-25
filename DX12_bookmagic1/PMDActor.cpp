@@ -17,6 +17,7 @@
 
 //	定数
 constexpr size_t pmdvertex_size = 38;				//	頂点一つ当たりのサイズ
+#define PLANESHADOW(bShadow) bShadow ? 2 : 1		//	地面影をOn/Off
 
 namespace//	無名名前空間
 {
@@ -36,6 +37,9 @@ namespace//	無名名前空間
 
 using namespace DirectX;
 using namespace Microsoft::WRL;
+
+//	静的変数の初期化処理
+unsigned int PMDActor::_nInstance = 1;
 
 //	コンストラクタ
 PMDActor::PMDActor(Dx12Wrapper* pDxWrap, const char* modelpath, const char* vmdpath, DirectX::XMFLOAT3 position):
@@ -123,8 +127,8 @@ void PMDActor::Draw(void)
 		//	ポリゴンの描画命令
 		_pDxWrap->GetCmdList()->DrawIndexedInstanced(
 			m.indicesNum,	//	インデックス数			
-			//2,				//	インスタンス数（ポリゴン数）1:通常のモデル描画、2:地面影
-			1,
+			_nInstance,				//	インスタンス数（ポリゴン数）1:通常のモデル描画、2:地面影
+			//1,
 			idxOffset,		//	インデックスのオフセット
 			0,				//	頂点データのオフセット
 			0				//	インスタンスのオフセット
@@ -186,6 +190,12 @@ void PMDActor::Release(void)
 void PMDActor::PlayAnimation(void)
 {
 	_startTime = timeGetTime();	//	現在の時間取得
+}
+
+//	インスタンス数の設定
+void PMDActor::SetInstance(const bool& bPlaneShadow)
+{
+	_nInstance = PLANESHADOW(bPlaneShadow);
 }
 
 //	モーション更新処理

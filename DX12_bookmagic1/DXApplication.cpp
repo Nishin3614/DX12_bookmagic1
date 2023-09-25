@@ -230,6 +230,10 @@ void DXApplication::DrawControlImgui(void)
 	static bool bShadow = false;
 	ImGui::Checkbox("SelfShadow on/off", &bShadow);
 
+	//	’n–Ê‰e ON/OFF
+	static bool bPlaneShadow = false;
+	ImGui::Checkbox("PlaneShadow on/off", &bPlaneShadow);
+
 	//	”½“]
 	static bool bReverse = false;
 	ImGui::Checkbox("Reverse on/off", &bReverse);
@@ -262,11 +266,12 @@ void DXApplication::DrawControlImgui(void)
 	}
 
 	//	ƒZƒbƒg
-	_pSceneInfo->SetFov(fFov);
 	_pDxWrap->SetBgCol(bgCol);
+	_pSceneInfo->SetFov(fFov);
 	_pSceneInfo->SetLightVec(afLightVec);
 	_pSceneInfo->SetSelfShadow(bShadow);
 	_pSceneInfo->SetSceneInfo();
+	PMDActor::SetInstance(bPlaneShadow);
 	_pVFX->SetPostSetting(bDebugDisp,bSSAO,bMonoChro,bReverse,bDof,bloomCol);
 }
 
