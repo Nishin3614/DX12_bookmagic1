@@ -75,6 +75,9 @@
     <ClCompile Include="stringDisp.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="polygon2D.cpp">
+      <Filter>ソース ファイル</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Win32Application.h">
@@ -131,6 +134,9 @@
     <ClInclude Include="stringDisp.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="polygon2D.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <FxCompile Include="BasicVertexShader.hlsl">
@@ -148,6 +154,12 @@
     <FxCompile Include="ssaoPixel.hlsl">
       <Filter>シェーダーファイル</Filter>
     </FxCompile>
+    <FxCompile Include="polygon2DVS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
+    <FxCompile Include="polygon2DPS.hlsl">
+      <Filter>シェーダーファイル</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="BasicShaderHeader.hlsli">
@@ -157,6 +169,9 @@
       <Filter>シェーダーファイル</Filter>
     </None>
     <None Include="ssaoHeader.hlsli">
+      <Filter>シェーダーファイル</Filter>
+    </None>
+    <None Include="polygon2D.hlsli">
       <Filter>シェーダーファイル</Filter>
     </None>
   </ItemGroup>

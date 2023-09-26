@@ -7,6 +7,7 @@
 #include "PMDRenderer.h"
 #include "effectEffekseer.h"
 #include "stringDisp.h"
+#include "polygon2D.h"
 
 //	IMGUIファイル
 #include "imgui/imgui.h"
@@ -30,7 +31,8 @@ DXApplication::DXApplication() :
 	_pPmdAct(nullptr),
 	_pPmdAct2(nullptr),
 	_pPmdRender(nullptr),
-	_pEffectEffekseer(nullptr)
+	_pEffectEffekseer(nullptr),
+	_pPolygon2D(nullptr)
 {
 }
 
@@ -58,6 +60,10 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	//	PMDレンダラーの初期化処理
 	_pPmdRender = new PMDRenderer(_pDxWrap);
 	_pPmdRender->Init();
+
+	//	文字列表示の初期化処理
+	_pPolygon2D = new Polygon2D(_pDxWrap);
+	_pPolygon2D->Init();
 
 	//	エフェクトEffekseerの初期化処理
 	_pEffectEffekseer = new EffectEffekseer(_pDxWrap);
@@ -93,10 +99,16 @@ void DXApplication::OnRender(void)
 	_pDxWrap->Clear();
 	//	描画
 	_pVFX->EndDraw();
+
+	//	ポリゴン2D描画
+	_pPolygon2D->Draw();
+
 	//	文字列描画
 	_pStringDisp->Draw();
 	//	Imgui描画
 	DrawImgui();
+
+
 
 	//	フリップ
 	_pDxWrap->Flip();
@@ -301,6 +313,10 @@ void DXApplication::OnRelease(void)
 	//	PMDレンダラーの解放
 	delete _pPmdRender;
 	_pPmdRender = nullptr;
+
+	//	ポリゴン2Dの解放
+	delete _pPolygon2D;
+	_pPolygon2D = nullptr;
 
 	//	effectEffekseerの解放
 	delete _pEffectEffekseer;

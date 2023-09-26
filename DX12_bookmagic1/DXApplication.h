@@ -14,6 +14,7 @@ class PMDActor;
 class PMDRenderer;
 class EffectEffekseer;
 class StringDisp;
+class Polygon2D;
 //	クラス宣言
 class DXApplication
 {
@@ -69,6 +70,7 @@ private:
 	PMDRenderer* _pPmdRender;								//	PMDレンダラークラス
 	EffectEffekseer* _pEffectEffekseer;
 	StringDisp* _pStringDisp;
+	Polygon2D* _pPolygon2D;
 };
 
 #endif // !_H_DXAPPLICATION_
