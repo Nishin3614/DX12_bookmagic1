@@ -159,6 +159,7 @@
     <ClCompile Include="PMDActor.cpp" />
     <ClCompile Include="PMDRenderer.cpp" />
     <ClCompile Include="polygon2D.cpp" />
+    <ClCompile Include="render2D.cpp" />
     <ClCompile Include="sceneInfo.cpp" />
     <ClCompile Include="stringDisp.cpp" />
     <ClCompile Include="VisualEffect.cpp" />
@@ -180,6 +181,7 @@
     <ClInclude Include="PMDActor.h" />
     <ClInclude Include="PMDRenderer.h" />
     <ClInclude Include="polygon2D.h" />
+    <ClInclude Include="render2D.h" />
     <ClInclude Include="sceneInfo.h" />
     <ClInclude Include="stringDisp.h" />
     <ClInclude Include="VisualEffect.h" />

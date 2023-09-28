@@ -7,7 +7,7 @@
 #include "PMDRenderer.h"
 #include "effectEffekseer.h"
 #include "stringDisp.h"
-#include "polygon2D.h"
+#include "render2D.h"
 
 //	IMGUIファイル
 #include "imgui/imgui.h"
@@ -32,7 +32,7 @@ DXApplication::DXApplication() :
 	_pPmdAct2(nullptr),
 	_pPmdRender(nullptr),
 	_pEffectEffekseer(nullptr),
-	_pPolygon2D(nullptr)
+	_pRender2D(nullptr)
 {
 }
 
@@ -61,9 +61,10 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	_pPmdRender = new PMDRenderer(_pDxWrap);
 	_pPmdRender->Init();
 
-	//	文字列表示の初期化処理
-	_pPolygon2D = new Polygon2D(_pDxWrap);
-	_pPolygon2D->Init();
+	//	2D描画の初期化処理
+	_pRender2D = new Renderer2D(_pDxWrap);
+	_pRender2D->Init();
+	_pRender2D->Create2D("img/TitleScreenUI/PushB00.png");
 
 	//	エフェクトEffekseerの初期化処理
 	_pEffectEffekseer = new EffectEffekseer(_pDxWrap);
@@ -101,7 +102,7 @@ void DXApplication::OnRender(void)
 	_pVFX->EndDraw();
 
 	//	ポリゴン2D描画
-	_pPolygon2D->Draw();
+	_pRender2D->Draw();
 
 	//	文字列描画
 	_pStringDisp->Draw();
@@ -119,9 +120,9 @@ void DXApplication::OnRender(void)
 //	シャドウマップ描画
 void DXApplication::ShadowMapDraw(void)
 {
+	_pVFX->ShadowDraw();
 	_pPmdRender->PreShadowDraw();
 	_pSceneInfo->CommandSet_SceneView();
-	_pVFX->ShadowDraw();
 	_pPmdAct->ShadowMapDraw();
 	_pPmdAct2->ShadowMapDraw();
 }
@@ -315,8 +316,8 @@ void DXApplication::OnRelease(void)
 	_pPmdRender = nullptr;
 
 	//	ポリゴン2Dの解放
-	delete _pPolygon2D;
-	_pPolygon2D = nullptr;
+	delete _pRender2D;
+	_pRender2D = nullptr;
 
 	//	effectEffekseerの解放
 	delete _pEffectEffekseer;

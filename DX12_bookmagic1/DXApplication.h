@@ -14,7 +14,7 @@ class PMDActor;
 class PMDRenderer;
 class EffectEffekseer;
 class StringDisp;
-class Polygon2D;
+class Renderer2D;
 //	クラス宣言
 class DXApplication
 {
@@ -37,6 +37,7 @@ public:
 	/*	取得関数	*/
 	Dx12Wrapper* GetWrapper(void) { return _pDxWrap; }
 	SceneInfo* GetSceneInfo(void) { return _pSceneInfo; }
+	Renderer2D* GetRenderer2D(void) { return _pRender2D; }
 
 private:
 	//	関数	//
@@ -70,7 +71,7 @@ private:
 	PMDRenderer* _pPmdRender;								//	PMDレンダラークラス
 	EffectEffekseer* _pEffectEffekseer;
 	StringDisp* _pStringDisp;
-	Polygon2D* _pPolygon2D;
+	Renderer2D* _pRender2D;
 };
 
 #endif // !_H_DXAPPLICATION_

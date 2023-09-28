@@ -3,6 +3,7 @@
 #include <wrl.h>
 #include <d3d12.h>
 #include <DirectXMath.h>
+#include <string>
 
 //	ライブラリ
 #pragma comment(lib,"d3d12.lib")
@@ -13,7 +14,7 @@ class Polygon2D
 {
 public:
 	//	コンストラクタ
-	Polygon2D(Dx12Wrapper* pWrap);
+	Polygon2D(Dx12Wrapper* pWrap,std::string texName);
 	//	初期化処理
 	void Init(void);
 	//	描画処理
@@ -30,10 +31,6 @@ private:
 	void CreateTexBuffer(void);
 	//	行列バッファ作成
 	void CreateMatBaffer(void);
-	//	ルートシグネイチャ作成
-	void CreateRootSignature(void);
-	//	パイプライン作成
-	void CreatePipeline(void);
 
 	/*	変数	*/
 	ComPtr<ID3D12Resource> _vb = nullptr;			//	頂点バッファ
@@ -41,10 +38,9 @@ private:
 	ComPtr<ID3D12Resource> _texBuffer = nullptr;	//	テクスチャーバッファ
 	ComPtr<ID3D12Resource> _constBuffer = nullptr;	//	定数バッファ
 	ComPtr<ID3D12DescriptorHeap> _dh = nullptr;		//	ディスクリプタヒープ
-	ComPtr<ID3D12PipelineState> _pls = nullptr;		//	pipelineステート
-	ComPtr<ID3D12RootSignature> _rs = nullptr;		//	ルートシグネイチャ
 
 	DirectX::XMFLOAT2 _pos = {};					//	位置
+	std::string _texName;
 
 	//	他クラスのインスタンス
 	Dx12Wrapper* _pWrap;
