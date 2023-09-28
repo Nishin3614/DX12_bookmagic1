@@ -3,7 +3,6 @@
 #include "sceneInfo.h"
 #include "Dx12Wrapper.h"
 #include "VisualEffect.h"
-#include "PMDActor.h"
 #include "PMDRenderer.h"
 #include "effectEffekseer.h"
 #include "stringDisp.h"
@@ -28,11 +27,10 @@ DXApplication::DXApplication() :
 	_pDxWrap(nullptr),
 	_pSceneInfo(nullptr),
 	_pVFX(nullptr),
-	_pPmdAct(nullptr),
-	_pPmdAct2(nullptr),
 	_pPmdRender(nullptr),
 	_pEffectEffekseer(nullptr),
-	_pRender2D(nullptr)
+	_pRender2D(nullptr),
+	_pStringDisp(nullptr)
 {
 }
 
@@ -49,13 +47,6 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 	//	ビジュアルエフェクトの初期化処理
 	_pVFX = new VisualEffect(_pDxWrap);
 	_pVFX->Init();
-
-	//	PMDモデルの初期化処理
-	_pPmdAct = new PMDActor(_pDxWrap, "Model/初音ミク.pmd", "motion/pose.vmd");
-	_pPmdAct->Init();
-
-	_pPmdAct2 = new PMDActor(_pDxWrap, "Model/弱音ハク.pmd", "motion/motion.vmd", {15.0f,0.0f,5.0f});
-	_pPmdAct2->Init();
 
 	//	PMDレンダラーの初期化処理
 	_pPmdRender = new PMDRenderer(_pDxWrap);
@@ -81,20 +72,8 @@ void DXApplication::OnInit(HWND hwnd, unsigned int window_width, unsigned int wi
 //	描画処理
 void DXApplication::OnRender(void)
 {
-	//	シャドウマップ描画
-	ShadowMapDraw();
-
-	//	モデル描画
-	ModelDraw();
-
-	//	アンビエントオクルージョン描画
-	_pVFX->DrawAmbientOcculusion();
-
-	//	縮小バッファのレンダーターゲットの描画
-	_pVFX->DrawShrinkTextureForBlur();
-
-	//	加工用のレンダーターゲットの描画
-	_pVFX->ProceDraw();
+	//	PMDモデル描画
+	_pPmdRender->Draw(_pSceneInfo,_pVFX);
 
 	//	バックバッファをレンダーターゲットのセット及び、のクリア
 	_pDxWrap->Clear();
@@ -109,42 +88,10 @@ void DXApplication::OnRender(void)
 	//	Imgui描画
 	DrawImgui();
 
-
-
 	//	フリップ
 	_pDxWrap->Flip();
 	//	文字列描画終了
 	_pStringDisp->EndStrDisp();
-}
-
-//	シャドウマップ描画
-void DXApplication::ShadowMapDraw(void)
-{
-	_pVFX->ShadowDraw();
-	_pPmdRender->PreShadowDraw();
-	_pSceneInfo->CommandSet_SceneView();
-	_pPmdAct->ShadowMapDraw();
-	_pPmdAct2->ShadowMapDraw();
-}
-
-//	モデル描画
-void DXApplication::ModelDraw(void)
-{
-	//	オリジンレンダーターゲットをセット
-	_pVFX->PreOriginDraw();
-	//	PMDレンダラーにて、ルートシグネイチャなどをセット
-	_pPmdRender->Draw();
-	//	シーンビューの描画セット
-	_pSceneInfo->CommandSet_SceneView();
-	_pVFX->DepthSRVSet();
-	//	PMDモデルの描画処理
-	_pPmdAct->Draw();
-	_pPmdAct2->Draw();
-
-	//	エフェクト描画
-	_pEffectEffekseer->Draw();
-	//	オリジンレンダーターゲットの描画終了
-	_pVFX->EndOriginDraw();
 }
 
 //	Imguiの初期化処理
@@ -304,13 +251,6 @@ void DXApplication::OnRelease(void)
 	delete _pVFX;
 	_pVFX = nullptr;
 
-	//	PMDモデルの解放
-	delete _pPmdAct;
-	_pPmdAct = nullptr;
-
-	delete 	_pPmdAct2;
-	_pPmdAct2 = nullptr;
-
 	//	PMDレンダラーの解放
 	delete _pPmdRender;
 	_pPmdRender = nullptr;
@@ -332,6 +272,5 @@ void DXApplication::OnRelease(void)
 //	更新処理
 void DXApplication::OnUpdate(void)
 {
-	_pPmdAct->Update();
-	_pPmdAct2->Update();
+	_pPmdRender->Update();
 }

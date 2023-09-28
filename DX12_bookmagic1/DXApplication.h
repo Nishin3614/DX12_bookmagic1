@@ -10,7 +10,6 @@
 class Dx12Wrapper;
 class SceneInfo;
 class VisualEffect;
-class PMDActor;
 class PMDRenderer;
 class EffectEffekseer;
 class StringDisp;
@@ -38,6 +37,7 @@ public:
 	Dx12Wrapper* GetWrapper(void) { return _pDxWrap; }
 	SceneInfo* GetSceneInfo(void) { return _pSceneInfo; }
 	Renderer2D* GetRenderer2D(void) { return _pRender2D; }
+	EffectEffekseer* GetEffectEffekseer(void) { return _pEffectEffekseer; }
 
 private:
 	//	関数	//
@@ -50,11 +50,6 @@ private:
 	//	コピーテクスチャレギオンでのテクスチャー貼り付け←公式から推奨される処理
 	//void ByCopyTextureRegion(void);
 
-	//	シャドウマップ描画
-	void ShadowMapDraw(void);
-	//	モデル描画
-	void ModelDraw(void);
-
 	//	Imguiの初期化処理
 	void InitImgui(HWND hwnd);
 	//	Imguiの描画処理
@@ -66,8 +61,6 @@ private:
 	Dx12Wrapper* _pDxWrap;									//	DirectX周りのクラス
 	SceneInfo* _pSceneInfo;									//	シーン情報クラス
 	VisualEffect* _pVFX;										//	ビジュアルエフェクト
-	PMDActor* _pPmdAct;										//	PMDアクタークラス
-	PMDActor* _pPmdAct2;
 	PMDRenderer* _pPmdRender;								//	PMDレンダラークラス
 	EffectEffekseer* _pEffectEffekseer;
 	StringDisp* _pStringDisp;

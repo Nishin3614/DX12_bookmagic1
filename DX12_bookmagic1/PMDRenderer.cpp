@@ -1,8 +1,12 @@
 //	インクルード
+#include "DXApplication.h"
 #include "PMDRenderer.h"
 #include <d3dcompiler.h>
 #include <d3dx12.h>
 #include "Dx12Wrapper.h"
+#include "sceneInfo.h"
+#include "VisualEffect.h"
+#include "effectEffekseer.h"
 #include "helper.h"
 
 //	ライブラリリンク
@@ -24,10 +28,24 @@ void PMDRenderer::Init(void)
 	CreateRootParameterOrRootSignature();
 	//	グラフィックパイプラインの作成
 	CreateGraphicPipeline();
+
+	//	PMDモデル作成
+	Create("Model/初音ミク.pmd", "motion/pose.vmd");
+	Create("Model/弱音ハク.pmd", "motion/motion.vmd", { 15.0f,0.0f,5.0f });
 }
 
 //	描画処理
-void PMDRenderer::Draw(void)
+void PMDRenderer::Draw(SceneInfo* pScene, VisualEffect* pVef)
+{
+	//	シャドウマップ描画
+	this->DrawShadowMap(pScene, pVef);
+	//	モデル描画
+	this->DrawModel(pScene, pVef);
+	//	画面効果
+	this->DrawVisualEffect(pVef);
+}
+
+void PMDRenderer::PreModelDraw(void)
 {
 	//	パイプラインステートをセット
 	_pDxWap->GetCmdList()->SetPipelineState(_pipelinestate.Get());
@@ -54,7 +72,18 @@ void PMDRenderer::Release(void)
 //	更新処理
 void PMDRenderer::Update(void)
 {
+	//	モデルのシャドウマップ描画
+	for (auto& actor : _pmdActor)
+	{
+		actor->Update();
+	}
+}
 
+PMDActor* PMDRenderer::Create(const char* modelpath, const char* vmdpath, DirectX::XMFLOAT3 position)
+{
+	std::unique_ptr p = std::make_unique<PMDActor>(_pDxWap, modelpath, vmdpath,position);
+	p->Init();
+	return _pmdActor.emplace_back(std::move(p)).get();
 }
 
 //	ルートパラメータとルートシグネイチャの作成
@@ -354,4 +383,52 @@ void PMDRenderer::CreateGraphicPipeline(void)
 		IID_PPV_ARGS(_plsShadow.ReleaseAndGetAddressOf())
 	);
 
+}
+
+//	シャドウマップ描画
+void PMDRenderer::DrawShadowMap(SceneInfo* pScene, VisualEffect* pVef)
+{
+	pVef->ShadowDraw();
+	this->PreShadowDraw();
+	pScene->CommandSet_SceneView();
+	//	モデルのシャドウマップ描画
+	for (auto& actor : _pmdActor)
+	{
+		actor->ShadowMapDraw();
+	}
+}
+
+//	モデル描画
+void PMDRenderer::DrawModel(SceneInfo* pScene, VisualEffect* pVef)
+{
+	//	オリジンレンダーターゲットをセット
+	pVef->PreOriginDraw();
+	//	PMDレンダラーにて、ルートシグネイチャなどをセット
+	this->PreModelDraw();
+	//	シーンビューの描画セット
+	pScene->CommandSet_SceneView();
+	pVef->DepthSRVSet();
+	//	↓PMDモデルの描画処理
+	for (auto& actor : _pmdActor)
+	{
+		actor->Draw();
+	}
+
+	//	エフェクト描画
+	DXApplication::Instance().GetEffectEffekseer()->Draw();
+	//	オリジンレンダーターゲットの描画終了
+	pVef->EndOriginDraw();
+}
+
+//	画面効果
+void PMDRenderer::DrawVisualEffect(VisualEffect* pVef)
+{
+	//	アンビエントオクルージョン描画
+	pVef->DrawAmbientOcculusion();
+
+	//	縮小バッファのレンダーターゲットの描画
+	pVef->DrawShrinkTextureForBlur();
+
+	//	加工用のレンダーターゲットの描画
+	pVef->ProceDraw();
 }
